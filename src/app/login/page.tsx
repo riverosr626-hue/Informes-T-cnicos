@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [modo, setModo] = useState<"entrar" | "registro">("entrar");
+  const [modo, setModo] = useState<"entrar" | "registro" | "recuperar">("entrar");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
@@ -15,13 +15,33 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
+  // Si un enlace de correo venció o ya se usó, el callback nos manda aquí con ?error=enlace
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("error") === "enlace") {
+      setError("El enlace del correo venció o ya fue usado. Pide uno nuevo.");
+    }
+  }, []);
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setCargando(true);
     setError(null);
     setAviso(null);
 
-    if (modo === "entrar") {
+    if (modo === "recuperar") {
+      const { error } = await supabase.auth.resetPasswordForEmail(correo, {
+        redirectTo: `${window.location.origin}/auth/callback?next=/restablecer`,
+      });
+      if (error) {
+        setError(
+          error.message.toLowerCase().includes("rate")
+            ? "Ya pediste un correo hace poco. Espera un minuto e inténtalo de nuevo."
+            : "No se pudo enviar el correo. Revisa la dirección e inténtalo de nuevo."
+        );
+      } else {
+        setAviso("Si el correo tiene una cuenta, te llegará un enlace para crear una contraseña nueva. Revisa también Spam.");
+      }
+    } else if (modo === "entrar") {
       const { error } = await supabase.auth.signInWithPassword({ email: correo, password: clave });
       if (error) {
         setError(
@@ -76,6 +96,12 @@ export default function LoginPage() {
         </div>
 
         <div className="tarjeta">
+          {modo === "recuperar" ? (
+            <div className="mb-5">
+              <h2 className="font-semibold">Recuperar contraseña</h2>
+              <p className="text-sm text-gray-500">Te enviaremos un correo con un enlace para crear una contraseña nueva.</p>
+            </div>
+          ) : (
           <div className="mb-5 grid grid-cols-2 rounded-md bg-gray-100 p-1 text-sm">
             {(["entrar", "registro"] as const).map((m) => (
               <button
@@ -88,6 +114,7 @@ export default function LoginPage() {
               </button>
             ))}
           </div>
+          )}
 
           <form onSubmit={enviar} className="space-y-4">
             {modo === "registro" && (
@@ -100,6 +127,7 @@ export default function LoginPage() {
               <label className="etiqueta">Correo</label>
               <input className="campo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="email" />
             </div>
+            {modo !== "recuperar" && (
             <div>
               <label className="etiqueta">Contraseña</label>
               <input
@@ -112,14 +140,34 @@ export default function LoginPage() {
                 autoComplete={modo === "entrar" ? "current-password" : "new-password"}
               />
             </div>
+            )}
 
             {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
             {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}
 
             <button className="boton w-full" disabled={cargando}>
-              {cargando ? "Procesando…" : modo === "entrar" ? "Entrar" : "Crear cuenta"}
+              {cargando
+                ? "Procesando…"
+                : modo === "entrar"
+                  ? "Entrar"
+                  : modo === "registro"
+                    ? "Crear cuenta"
+                    : "Enviar correo de recuperación"}
             </button>
           </form>
+
+          <div className="mt-4 text-center text-sm">
+            {modo === "entrar" && (
+              <button type="button" onClick={() => { setModo("recuperar"); setError(null); setAviso(null); }} className="text-amber-700 hover:underline">
+                ¿Olvidaste tu contraseña?
+              </button>
+            )}
+            {modo === "recuperar" && (
+              <button type="button" onClick={() => { setModo("entrar"); setError(null); setAviso(null); }} className="text-gray-600 hover:underline">
+                ← Volver a iniciar sesión
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </main>
