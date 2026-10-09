@@ -97,7 +97,7 @@ export default function LoginPage() {
                 key={m}
                 type="button"
                 onClick={() => { setModo(m); setError(null); setAviso(null); }}
-                className={`rounded py-1.5 font-medium ${modo === m ? "bg-white shadow-sm" : "text-gray-500"}`}
+                className={`rounded py-1.5 font-medium ${modo === m ? "bg-[#1BA45F] text-white shadow-sm" : "text-gray-500"}`}
               >
                 {m === "entrar" ? "Iniciar sesión" : "Crear cuenta"}
               </button>
@@ -131,7 +131,7 @@ export default function LoginPage() {
             {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
             {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}
 
-            <button className="boton w-full" disabled={cargando}>
+            <button className="boton w-full !bg-[#1BA45F] !text-white hover:!bg-[#168a50]" disabled={cargando}>
               {cargando ? "Procesando…" : modo === "entrar" ? "Entrar" : "Crear cuenta"}
             </button>
           </form>
