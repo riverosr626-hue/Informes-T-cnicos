@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { COOKIE_RECORDAR, guardarPreferenciaRecordar } from "@/lib/recordar";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,12 +13,15 @@ export default function LoginPage() {
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
+  const [recordar, setRecordar] = useState(true);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
 
   // Si un enlace de correo venció o ya se usó, el callback nos manda aquí con ?error=enlace
   useEffect(() => {
+    // Recupera la preferencia de este dispositivo (por defecto: recordar)
+    if (document.cookie.split("; ").includes(`${COOKIE_RECORDAR}=0`)) setRecordar(false);
     if (new URLSearchParams(window.location.search).get("error") === "enlace") {
       setError("El enlace del correo venció o ya fue usado. Pide uno nuevo.");
     }
@@ -28,6 +32,8 @@ export default function LoginPage() {
     setCargando(true);
     setError(null);
     setAviso(null);
+    // Debe guardarse antes de iniciar sesión: define cuánto dura la sesión en este dispositivo
+    guardarPreferenciaRecordar(recordar);
 
     if (modo === "entrar") {
       const { error } = await supabase.auth.signInWithPassword({ email: correo, password: clave });
@@ -128,6 +134,16 @@ export default function LoginPage() {
                 autoComplete={modo === "entrar" ? "current-password" : "new-password"}
               />
             </div>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-grafito">
+              <input
+                type="checkbox"
+                className="h-4 w-4 cursor-pointer accent-marca-500"
+                checked={recordar}
+                onChange={(e) => setRecordar(e.target.checked)}
+              />
+              Mantener sesión iniciada en este dispositivo
+            </label>
 
             {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
             {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}

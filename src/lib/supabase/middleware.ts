@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 
 type CookieParaGuardar = { name: string; value: string; options: CookieOptions };
 import { NextResponse, type NextRequest } from "next/server";
+import { COOKIE_RECORDAR, ajustarOpciones, quiereRecordar } from "@/lib/recordar";
 
 const RUTAS_PUBLICAS = ["/login", "/auth", "/recuperar"];
 
@@ -19,8 +20,9 @@ export async function updateSession(request: NextRequest) {
         setAll(cookiesToSet: CookieParaGuardar[]) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
           response = NextResponse.next({ request });
+          const recordar = quiereRecordar(request.cookies.get(COOKIE_RECORDAR)?.value);
           cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options)
+            response.cookies.set(name, value, ajustarOpciones(options, recordar))
           );
         },
       },
