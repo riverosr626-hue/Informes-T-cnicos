@@ -83,9 +83,9 @@ export default async function Inicio() {
       <Encabezado perfil={perfil} />
       <main className="mx-auto max-w-5xl px-4 py-6">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold">Hola{primerNombre ? `, ${primerNombre}` : ""} 👋</h1>
+          <h1 className="text-2xl font-bold">Hola{primerNombre ? `, ${primerNombre}` : ""}</h1>
           <p className="text-sm text-gray-500">
-            {perfil ? NOMBRE_ROL[perfil.rol] : ""} · ¿Qué quieres hacer hoy?
+            {perfil ? `${NOMBRE_ROL[perfil.rol]} · ` : ""}Panel principal
           </p>
         </div>
 
