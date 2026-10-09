@@ -4,14 +4,18 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  browserLocalPersistence,
+  browserSessionPersistence,
   createUserWithEmailAndPassword,
   sendEmailVerification,
+  setPersistence,
   signInWithEmailAndPassword,
   updateProfile,
 } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { useSesion } from "@/lib/sesion";
+import { guardarPreferenciaRecordar, leerPreferenciaRecordar } from "@/lib/recordar";
 
 function mensajeError(codigo: string) {
   switch (codigo) {
@@ -41,6 +45,7 @@ export default function LoginPage() {
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
+  const [recordar, setRecordar] = useState(true);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [registrando, setRegistrando] = useState(false);
@@ -50,12 +55,21 @@ export default function LoginPage() {
     if (!cargandoSesion && usuario && !registrando) router.replace("/informes");
   }, [cargandoSesion, usuario, registrando, router]);
 
+  // Recupera la preferencia de este dispositivo (por defecto: recordar)
+  useEffect(() => {
+    setRecordar(leerPreferenciaRecordar());
+  }, []);
+
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setCargando(true);
     setError(null);
+    // Marcado: la sesión queda guardada en este dispositivo.
+    // Desmarcado: se cierra al cerrar el navegador.
+    guardarPreferenciaRecordar(recordar);
 
     try {
+      await setPersistence(auth(), recordar ? browserLocalPersistence : browserSessionPersistence);
       if (modo === "entrar") {
         await signInWithEmailAndPassword(auth(), correo.trim(), clave);
         router.replace("/informes");
@@ -87,22 +101,29 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl">⚡</div>
+    <main
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/fondo-inicio.jpg')" }}
+    >
+      {/* Capa oscura para que el formulario se lea bien sobre la foto */}
+      <div className="absolute inset-0 bg-black/40" aria-hidden />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-6 text-center text-white drop-shadow">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-le-energy.png" alt="LE Energy" className="mx-auto mb-3 h-20 w-auto" />
           <h1 className="text-xl font-bold">Informes de Generadores</h1>
-          <p className="text-sm text-gray-500">Evaluaciones técnicas de grupos electrógenos</p>
+          <p className="text-sm text-gray-200">Evaluaciones técnicas de grupos electrógenos</p>
         </div>
 
-        <div className="tarjeta">
-          <div className="mb-5 grid grid-cols-2 rounded-md bg-gray-100 p-1 text-sm">
+        <div className="tarjeta !border-gray-200 !bg-fondo text-grafito shadow-xl">
+          <div className="mb-5 grid grid-cols-2 rounded-md bg-gray-200 p-1 text-sm">
             {(["entrar", "registro"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setModo(m); setError(null); }}
-                className={`rounded py-1.5 font-medium ${modo === m ? "bg-white shadow-sm" : "text-gray-500"}`}
+                className={`rounded py-1.5 font-medium ${modo === m ? "bg-marca-500 text-white shadow-sm" : "text-gray-500 hover:text-grafito"}`}
               >
                 {m === "entrar" ? "Iniciar sesión" : "Crear cuenta"}
               </button>
@@ -133,6 +154,16 @@ export default function LoginPage() {
               />
             </div>
 
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-grafito">
+              <input
+                type="checkbox"
+                className="h-4 w-4 cursor-pointer accent-marca-500"
+                checked={recordar}
+                onChange={(e) => setRecordar(e.target.checked)}
+              />
+              Mantener sesión iniciada en este dispositivo
+            </label>
+
             {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
 
             <button className="boton w-full" disabled={cargando}>
@@ -142,7 +173,7 @@ export default function LoginPage() {
 
           {modo === "entrar" && (
             <div className="mt-4 text-center text-sm">
-              <Link href="/recuperar" className="text-amber-700 hover:underline">¿Olvidaste tu contraseña?</Link>
+              <Link href="/recuperar" className="font-medium text-marca-700 hover:underline">¿Olvidaste tu contraseña?</Link>
             </div>
           )}
         </div>

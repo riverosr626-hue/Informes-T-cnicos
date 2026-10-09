@@ -116,7 +116,7 @@ function ConfirmarCorreo({ usuario }: { usuario: User }) {
   return (
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="tarjeta w-full max-w-sm space-y-4 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl">✉️</div>
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-marca-500 text-2xl">✉️</div>
         <h1 className="text-xl font-bold">Confirma tu correo</h1>
         <p className="text-sm text-gray-600">
           Te enviamos un enlace a <strong className="break-all">{usuario.email}</strong>. Ábrelo para activar tu cuenta,

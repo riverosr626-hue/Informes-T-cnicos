@@ -56,7 +56,7 @@ function Contenido() {
         <main className="mx-auto max-w-3xl px-4 py-10">
           <div className="tarjeta text-center text-gray-600">
             No se encontró el informe #{id}.{" "}
-            <Link href="/informes" className="font-medium text-amber-700 underline">Volver a los informes</Link>
+            <Link href="/informes" className="font-medium text-marca-700 underline">Volver a los informes</Link>
           </div>
         </main>
       </>
@@ -77,7 +77,7 @@ function Contenido() {
         <div className="tarjeta">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Informe de evaluación #{i.id}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-marca-700">Informe de evaluación #{i.id}</p>
               <h1 className="text-2xl font-bold">{i.cliente}</h1>
               <p className="text-sm text-gray-500">{i.ubicacion}</p>
             </div>

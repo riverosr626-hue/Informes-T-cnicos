@@ -89,7 +89,7 @@ export default function ListaTecnicos({
       )}
 
       {editando && (
-        <div className="tarjeta border-amber-300">
+        <div className="tarjeta border-marca-300">
           <h2 className="font-semibold">Nueva contraseña para {editando.nombre}</h2>
           <p className="mb-3 text-sm text-gray-500">
             Te sugerimos una contraseña temporal; puedes cambiarla. Díctasela al técnico; después él puede seguir usándola.
@@ -128,7 +128,7 @@ export default function ListaTecnicos({
                 <td className="px-4 py-2.5 font-medium">
                   {t.nombre}
                   {t.rol === "admin" && (
-                    <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-gray-900">Admin</span>
+                    <span className="ml-2 rounded bg-marca-500 px-1.5 py-0.5 text-xs font-semibold text-white">Admin</span>
                   )}
                 </td>
                 <td className="px-4 py-2.5 break-all">{t.correo}</td>
@@ -140,7 +140,7 @@ export default function ListaTecnicos({
                   )}
                 </td>
                 <td className="px-4 py-2.5">
-                  <a href={`/informes?tecnico=${t.id}`} className="text-amber-700 underline">{t.total_informes}</a>
+                  <a href={`/informes?tecnico=${t.id}`} className="text-marca-700 underline">{t.total_informes}</a>
                 </td>
                 <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-500">
                   {t.ultimo_ingreso ? formatoFecha(t.ultimo_ingreso) : "Nunca"}

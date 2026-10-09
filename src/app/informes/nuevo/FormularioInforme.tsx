@@ -165,7 +165,7 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
           <Campo label="Estado general del equipo *">
             <div className="flex flex-wrap gap-2">
               {ESTADOS_GENERALES.map((e, idx) => (
-                <label key={e} className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                <label key={e} className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm has-[:checked]:border-marca-500 has-[:checked]:bg-marca-50">
                   <input type="radio" name="estado_general" value={e} required defaultChecked={idx === 0} />
                   {e}
                 </label>
