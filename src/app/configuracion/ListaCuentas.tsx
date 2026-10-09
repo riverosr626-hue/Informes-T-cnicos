@@ -164,7 +164,7 @@ export default function ListaTecnicos({ tecnicos, miId, miRol }: { tecnicos: Tec
           <thead className="bg-gray-50 text-left text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-2.5">Nombre</th>
-              <th className="px-4 py-2.5">Correo</th>
+              <th className="hidden px-4 py-2.5 lg:table-cell">Correo</th>
               <th className="px-4 py-2.5">Nivel</th>
               <th className="px-4 py-2.5">Estado</th>
               <th className="px-4 py-2.5">Informes</th>
@@ -178,8 +178,9 @@ export default function ListaTecnicos({ tecnicos, miId, miRol }: { tecnicos: Tec
                 <td className="px-4 py-2.5 font-medium">
                   {t.nombre}
                   {t.id === miId && <span className="ml-1 text-xs text-gray-400">(tú)</span>}
+                  <span className="block text-xs font-normal text-gray-500 lg:hidden">{t.correo}</span>
                 </td>
-                <td className="px-4 py-2.5 break-all">{t.correo}</td>
+                <td className="hidden px-4 py-2.5 lg:table-cell">{t.correo}</td>
                 <td className="px-4 py-2.5">
                   {puedeAdministrar(t) ? (
                     <select
