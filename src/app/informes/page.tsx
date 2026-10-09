@@ -40,7 +40,7 @@ export default async function ListaInformes({
       <Encabezado perfil={perfil} />
       <main className="mx-auto max-w-5xl px-4 py-6">
         {tieneCodigo === false && (
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-marca-300 bg-marca-50 p-4 text-sm">
             <span>
               🔑 <strong>Crea tu código de recuperación</strong>: si olvidas tu contraseña, podrás recuperarla tú mismo.
             </span>
@@ -76,7 +76,7 @@ export default async function ListaInformes({
 
         {informes && informes.length === 0 && (
           <div className="tarjeta text-center text-gray-500">
-            Aún no hay informes. <Link href="/informes/nuevo" className="font-medium text-amber-700 underline">Crea el primero</Link>.
+            Aún no hay informes. <Link href="/informes/nuevo" className="font-medium text-marca-700 underline">Crea el primero</Link>.
           </div>
         )}
 
@@ -96,9 +96,9 @@ export default async function ListaInformes({
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {informes.map((i) => (
-                  <tr key={i.id} className="hover:bg-amber-50/50">
+                  <tr key={i.id} className="hover:bg-marca-50/50">
                     <td className="px-4 py-2.5 font-mono">
-                      <Link href={`/informes/${i.id}`} className="text-amber-700 underline">#{i.id}</Link>
+                      <Link href={`/informes/${i.id}`} className="text-marca-700 underline">#{i.id}</Link>
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap">{i.fecha_evaluacion}</td>
                     <td className="px-4 py-2.5">

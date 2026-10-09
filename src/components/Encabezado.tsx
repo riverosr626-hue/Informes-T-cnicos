@@ -12,11 +12,12 @@ async function cerrarSesion() {
 
 export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
   return (
-    <header className="no-imprimir border-b border-gray-200 bg-gray-900 text-white">
+    <header className="no-imprimir border-b border-black/10 bg-grafito text-white">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-5">
           <Link href="/informes" className="flex items-center gap-2 font-semibold">
-            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-amber-500 text-sm">⚡</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-le-energy.png" alt="LE Energy" className="h-8 w-auto" />
             <span className="hidden sm:inline">Informes de Generadores</span>
           </Link>
           <nav className="flex gap-4 text-sm text-gray-300">
@@ -30,12 +31,12 @@ export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
             <span className="hidden text-gray-300 sm:inline">
               {perfil.nombre}
               {perfil.rol === "admin" && (
-                <span className="ml-2 rounded bg-amber-500 px-1.5 py-0.5 text-xs font-semibold text-gray-900">Admin</span>
+                <span className="ml-2 rounded bg-marca-500 px-1.5 py-0.5 text-xs font-semibold text-white">Admin</span>
               )}
             </span>
           )}
           <form action={cerrarSesion}>
-            <button className="rounded border border-gray-600 px-2.5 py-1 text-gray-200 hover:bg-gray-800">Salir</button>
+            <button className="rounded border border-gray-600 px-2.5 py-1 text-gray-200 hover:bg-white/10">Salir</button>
           </form>
         </div>
       </div>

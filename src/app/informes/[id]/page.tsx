@@ -48,7 +48,7 @@ export default async function DetalleInforme({ params }: { params: Promise<{ id:
         <div className="tarjeta">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Informe de evaluación #{i.id}</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-marca-700">Informe de evaluación #{i.id}</p>
               <h1 className="text-2xl font-bold">{i.cliente}</h1>
               <p className="text-sm text-gray-500">{i.ubicacion}</p>
             </div>

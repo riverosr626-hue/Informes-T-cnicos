@@ -41,7 +41,7 @@ export default function CodigoRecuperacion({ tieneCodigo }: { tieneCodigo: boole
 
       {codigo ? (
         <div className="space-y-3">
-          <div className="rounded-lg border-2 border-dashed border-amber-400 bg-amber-50 p-4 text-center">
+          <div className="rounded-lg border-2 border-dashed border-marca-400 bg-marca-50 p-4 text-center">
             <p className="font-mono text-2xl font-bold tracking-widest">{codigo}</p>
           </div>
           <p className="rounded bg-red-50 p-2 text-sm text-red-700">

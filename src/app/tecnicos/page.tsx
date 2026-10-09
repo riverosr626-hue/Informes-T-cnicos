@@ -15,7 +15,7 @@ export default async function PaginaTecnicos() {
         <main className="mx-auto max-w-3xl px-4 py-10">
           <div className="tarjeta text-center text-gray-600">
             Esta sección es solo para el administrador.{" "}
-            <Link href="/informes" className="font-medium text-amber-700 underline">Volver a mis informes</Link>
+            <Link href="/informes" className="font-medium text-marca-700 underline">Volver a mis informes</Link>
           </div>
         </main>
       </>

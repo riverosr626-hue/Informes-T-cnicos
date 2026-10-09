@@ -43,7 +43,7 @@ export default function RestablecerPage() {
     <main className="flex min-h-screen items-center justify-center px-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl">🔑</div>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-marca-500 text-2xl">🔑</div>
           <h1 className="text-xl font-bold">Nueva contraseña</h1>
           <p className="text-sm text-gray-500">Escribe la contraseña que quieres usar desde ahora.</p>
         </div>

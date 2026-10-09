@@ -1,12 +1,27 @@
 @import "tailwindcss";
 
+/* Colores de marca LE Energy (tomados del logo oficial) */
+@theme {
+  --color-marca-50: #eef8f0;
+  --color-marca-100: #d6efdb;
+  --color-marca-200: #addfb7;
+  --color-marca-300: #7fcb8e;
+  --color-marca-400: #4fb665;
+  --color-marca-500: #36a74f;
+  --color-marca-600: #2c8a41;
+  --color-marca-700: #246f35;
+  --color-marca-800: #1d582b;
+  --color-grafito: #494949;
+  --color-fondo: #f7f7f7;
+}
+
 body {
-  background: #f4f5f7;
+  background: #f7f7f7;
   color: #1c1f24;
 }
 
 .campo {
-  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-200;
+  @apply w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-marca-500 focus:outline-none focus:ring-2 focus:ring-marca-200;
 }
 
 .etiqueta {
@@ -14,7 +29,7 @@ body {
 }
 
 .boton {
-  @apply inline-flex items-center justify-center rounded-md bg-amber-500 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-amber-400 disabled:opacity-50;
+  @apply inline-flex items-center justify-center rounded-md bg-marca-500 px-4 py-2 text-sm font-semibold text-white hover:bg-marca-600 disabled:opacity-50;
 }
 
 .boton-sec {
