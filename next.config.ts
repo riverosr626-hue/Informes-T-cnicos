@@ -1,9 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  experimental: {
-    serverActions: { bodySizeLimit: "10mb" },
-  },
+  // firebase-admin usa módulos de Node: que Next no intente empaquetarlo
+  serverExternalPackages: ["firebase-admin"],
 };
 
 export default nextConfig;

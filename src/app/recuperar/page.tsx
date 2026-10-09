@@ -3,12 +3,12 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
+import { auth, llamarApi } from "@/lib/firebase";
 
 // Recuperar contraseña: con código personal (automático) o con enlace por correo
 export default function RecuperarPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [metodo, setMetodo] = useState<"codigo" | "correo">("codigo");
   const [correo, setCorreo] = useState("");
   const [codigo, setCodigo] = useState("");
@@ -26,33 +26,30 @@ export default function RecuperarPage() {
     if (clave !== clave2) return setError("Las contraseñas no coinciden.");
 
     setCargando(true);
-    const { data, error } = await supabase.rpc("recuperar_con_codigo", {
-      p_correo: correo,
-      p_codigo: codigo,
-      p_clave: clave,
-    });
-    if (error) {
+    let resultado: string;
+    try {
+      ({ resultado } = await llamarApi<{ resultado: string }>("/api/recuperacion/usar", { correo, codigo, clave }));
+    } catch {
       setCargando(false);
       return setError("No se pudo cambiar la contraseña. Inténtalo de nuevo en un momento.");
     }
-    if (data === "bloqueado") {
+    if (resultado === "bloqueado") {
       setCargando(false);
       return setError("Demasiados intentos fallidos. Espera 30 minutos e inténtalo de nuevo.");
     }
-    if (data !== "ok") {
+    if (resultado !== "ok") {
       setCargando(false);
       return setError("El correo o el código de recuperación no son correctos.");
     }
 
     // Contraseña cambiada: entrar directo
-    const { error: errEntrar } = await supabase.auth.signInWithPassword({ email: correo, password: clave });
-    setCargando(false);
-    if (errEntrar) {
+    try {
+      await signInWithEmailAndPassword(auth(), correo.trim(), clave);
+      router.replace("/cuenta?nuevo=1");
+    } catch {
+      setCargando(false);
       setAviso("Contraseña cambiada. Ya puedes iniciar sesión con tu nueva contraseña.");
-      return;
     }
-    router.push("/cuenta?nuevo=1");
-    router.refresh();
   }
 
   async function conCorreo(e: React.FormEvent) {
@@ -60,19 +57,21 @@ export default function RecuperarPage() {
     setError(null);
     setAviso(null);
     setCargando(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(correo, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/restablecer`,
-    });
-    setCargando(false);
-    if (error) {
-      setError(
-        error.message.toLowerCase().includes("rate")
-          ? "Ya pediste un correo hace poco. Espera un minuto e inténtalo de nuevo."
-          : "No se pudo enviar el correo. Usa tu código de recuperación o pide ayuda al administrador."
-      );
-    } else {
+    try {
+      auth().languageCode = "es";
+      await sendPasswordResetEmail(auth(), correo.trim());
       setAviso("Si el correo tiene una cuenta, te llegará un enlace para crear una contraseña nueva. Revisa también Spam.");
+    } catch (err) {
+      const codigoError = (err as { code?: string }).code ?? "";
+      setError(
+        codigoError === "auth/too-many-requests"
+          ? "Ya pediste un correo hace poco. Espera unos minutos e inténtalo de nuevo."
+          : codigoError === "auth/invalid-email"
+            ? "El correo no es válido."
+            : "No se pudo enviar el correo. Usa tu código de recuperación o pide ayuda al administrador."
+      );
     }
+    setCargando(false);
   }
 
   return (

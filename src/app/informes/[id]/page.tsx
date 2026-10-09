@@ -1,11 +1,15 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
+import { doc, getDoc } from "firebase/firestore";
+import { getDownloadURL, ref } from "firebase/storage";
 import Encabezado from "@/components/Encabezado";
-import { obtenerSesion } from "@/lib/sesion";
+import { db, storage } from "@/lib/firebase";
+import { Protegida } from "@/lib/sesion";
 import { colorEstado, formatoFecha, type Informe } from "@/lib/tipos";
 import BotonImprimir from "./BotonImprimir";
-
-export const dynamic = "force-dynamic";
 
 function Dato({ label, valor }: { label: string; valor: React.ReactNode }) {
   return (
@@ -16,29 +20,54 @@ function Dato({ label, valor }: { label: string; valor: React.ReactNode }) {
   );
 }
 
-export default async function DetalleInforme({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
-  const { supabase, perfil } = await obtenerSesion();
+function Contenido() {
+  const { id } = useParams<{ id: string }>();
+  const [i, setInforme] = useState<Informe | null>(null);
+  const [estado, setEstado] = useState<"cargando" | "listo" | "no-encontrado">("cargando");
+  const [urlsFotos, setUrlsFotos] = useState<string[]>([]);
 
-  const { data: i } = await supabase
-    .from("informes")
-    .select("*, perfiles(nombre, correo)")
-    .eq("id", Number(id))
-    .single<Informe>();
+  useEffect(() => {
+    getDoc(doc(db(), "informes", String(id)))
+      .then(async (snap) => {
+        if (!snap.exists()) return setEstado("no-encontrado");
+        const datos = snap.data() as Informe;
+        setInforme(datos);
+        setEstado("listo");
+        const urls = await Promise.allSettled((datos.fotos ?? []).map((ruta) => getDownloadURL(ref(storage(), ruta))));
+        setUrlsFotos(urls.flatMap((u) => (u.status === "fulfilled" ? [u.value] : [])));
+      })
+      // Sin permiso para verlo (es de otro técnico) se trata igual que no encontrado
+      .catch(() => setEstado("no-encontrado"));
+  }, [id]);
 
-  if (!i) notFound();
+  if (estado === "cargando") {
+    return (
+      <>
+        <Encabezado />
+        <main className="mx-auto max-w-3xl px-4 py-10 text-center text-sm text-gray-500">Cargando informe…</main>
+      </>
+    );
+  }
 
-  let urlsFotos: string[] = [];
-  if (i.fotos.length > 0) {
-    const { data } = await supabase.storage.from("fotos").createSignedUrls(i.fotos, 60 * 60);
-    urlsFotos = (data ?? []).map((f) => f.signedUrl).filter((u): u is string => !!u);
+  if (estado === "no-encontrado" || !i) {
+    return (
+      <>
+        <Encabezado />
+        <main className="mx-auto max-w-3xl px-4 py-10">
+          <div className="tarjeta text-center text-gray-600">
+            No se encontró el informe #{id}.{" "}
+            <Link href="/informes" className="font-medium text-amber-700 underline">Volver a los informes</Link>
+          </div>
+        </main>
+      </>
+    );
   }
 
   const carga = i.prueba_con_carga === true ? "Aprobada" : i.prueba_con_carga === false ? "No aprobada" : "No aplica";
 
   return (
     <>
-      <Encabezado perfil={perfil} />
+      <Encabezado />
       <main className="mx-auto max-w-3xl space-y-4 px-4 py-6">
         <div className="no-imprimir flex items-center justify-between">
           <Link href="/informes" className="text-sm text-gray-600 hover:underline">← Volver</Link>
@@ -57,8 +86,8 @@ export default async function DetalleInforme({ params }: { params: Promise<{ id:
             </span>
           </div>
           <dl className="mt-4 grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-4">
-            <Dato label="Técnico" valor={i.perfiles?.nombre} />
-            <Dato label="Correo técnico" valor={<span className="break-all">{i.perfiles?.correo}</span>} />
+            <Dato label="Técnico" valor={i.tecnico_nombre} />
+            <Dato label="Correo técnico" valor={<span className="break-all">{i.tecnico_correo}</span>} />
             <Dato label="Fecha evaluación" valor={i.fecha_evaluacion} />
             <Dato label="Subido el" valor={formatoFecha(i.creado_en)} />
             <Dato label="Tipo" valor={i.tipo_evaluacion} />
@@ -128,5 +157,13 @@ export default async function DetalleInforme({ params }: { params: Promise<{ id:
         )}
       </main>
     </>
+  );
+}
+
+export default function DetalleInforme() {
+  return (
+    <Protegida>
+      <Contenido />
+    </Protegida>
   );
 }

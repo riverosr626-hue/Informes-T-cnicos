@@ -2,8 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
-import { CONDICIONES, ESTADOS_GENERALES, TIPOS_EVALUACION } from "@/lib/tipos";
+import { ref, uploadBytes } from "firebase/storage";
+import { llamarApi, storage } from "@/lib/firebase";
+import { CAMPOS_NUMERICOS, CONDICIONES, ESTADOS_GENERALES, TIPOS_EVALUACION } from "@/lib/tipos";
 
 function Campo({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -42,11 +43,11 @@ const INSPECCION: [string, string][] = [
   ["estado_bateria", "Batería"],
 ];
 
-const NUMERICOS = ["potencia_kva", "horometro", ...MEDICIONES.map(([k]) => k)];
+const NUMERICOS: readonly string[] = CAMPOS_NUMERICOS;
+const MAX_FOTO_MB = 10;
 
 export default function FormularioInforme({ usuarioId }: { usuarioId: string }) {
   const router = useRouter();
-  const supabase = createClient();
   const [fotos, setFotos] = useState<File[]>([]);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -68,37 +69,36 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
     const carga = fd.get("prueba_con_carga");
     datos.prueba_con_carga = carga === "si" ? true : carga === "no" ? false : null;
 
+    const grande = fotos.find((f) => f.size > MAX_FOTO_MB * 1024 * 1024);
+    if (grande) {
+      setError(`La foto "${grande.name}" pesa más de ${MAX_FOTO_MB} MB.`);
+      setEnviando(false);
+      return;
+    }
+
     // 1) Subir fotos a la carpeta del técnico
     const rutas: string[] = [];
     for (const foto of fotos) {
-      const ext = foto.name.split(".").pop()?.toLowerCase() || "jpg";
-      const ruta = `${usuarioId}/${crypto.randomUUID()}.${ext}`;
-      const { error: errFoto } = await supabase.storage.from("fotos").upload(ruta, foto, {
-        contentType: foto.type,
-      });
-      if (errFoto) {
-        setError(`No se pudo subir la foto "${foto.name}": ${errFoto.message}`);
+      const ext = (foto.name.split(".").pop()?.toLowerCase() || "jpg").replace(/[^a-z0-9]/g, "") || "jpg";
+      const ruta = `fotos/${usuarioId}/${crypto.randomUUID()}.${ext}`;
+      try {
+        await uploadBytes(ref(storage(), ruta), foto, { contentType: foto.type || "image/jpeg" });
+      } catch {
+        setError(`No se pudo subir la foto "${foto.name}". Revisa tu conexión e inténtalo de nuevo.`);
         setEnviando(false);
         return;
       }
       rutas.push(ruta);
     }
 
-    // 2) Guardar el informe (tecnico_id lo pone la base de datos = usuario conectado)
-    const { data, error: errInforme } = await supabase
-      .from("informes")
-      .insert({ ...datos, fotos: rutas })
-      .select("id")
-      .single();
-
-    if (errInforme) {
-      setError(`No se pudo guardar el informe: ${errInforme.message}`);
+    // 2) Guardar el informe: el servidor lo numera y lo firma con la cuenta conectada
+    try {
+      const { id } = await llamarApi<{ id: number }>("/api/informes", { ...datos, fotos: rutas });
+      router.push(`/informes/${id}`);
+    } catch (err) {
+      setError(`No se pudo guardar el informe: ${(err as Error).message}`);
       setEnviando(false);
-      return;
     }
-
-    router.push(`/informes/${data.id}`);
-    router.refresh();
   }
 
   return (

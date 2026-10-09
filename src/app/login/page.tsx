@@ -3,74 +3,85 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import {
+  createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signInWithEmailAndPassword,
+  updateProfile,
+} from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "@/lib/firebase";
+import { useSesion } from "@/lib/sesion";
+
+function mensajeError(codigo: string) {
+  switch (codigo) {
+    case "auth/invalid-credential":
+    case "auth/wrong-password":
+    case "auth/user-not-found":
+      return "Correo o contraseña incorrectos.";
+    case "auth/email-already-in-use":
+      return "Ese correo ya tiene una cuenta.";
+    case "auth/weak-password":
+      return "La contraseña debe tener al menos 6 caracteres.";
+    case "auth/invalid-email":
+      return "El correo no es válido.";
+    case "auth/too-many-requests":
+      return "Demasiados intentos. Espera unos minutos e inténtalo de nuevo.";
+    case "auth/network-request-failed":
+      return "Sin conexión a internet.";
+    default:
+      return "No se pudo completar. Inténtalo de nuevo.";
+  }
+}
 
 export default function LoginPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const { cargando: cargandoSesion, usuario, recargarPerfil } = useSesion();
   const [modo, setModo] = useState<"entrar" | "registro">("entrar");
   const [nombre, setNombre] = useState("");
   const [correo, setCorreo] = useState("");
   const [clave, setClave] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [aviso, setAviso] = useState<string | null>(null);
+  const [registrando, setRegistrando] = useState(false);
 
-  // Si un enlace de correo venció o ya se usó, el callback nos manda aquí con ?error=enlace
+  // Si ya hay sesión, directo a los informes
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("error") === "enlace") {
-      setError("El enlace del correo venció o ya fue usado. Pide uno nuevo.");
-    }
-  }, []);
+    if (!cargandoSesion && usuario && !registrando) router.replace("/informes");
+  }, [cargandoSesion, usuario, registrando, router]);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setCargando(true);
     setError(null);
-    setAviso(null);
 
-    if (modo === "entrar") {
-      const { error } = await supabase.auth.signInWithPassword({ email: correo, password: clave });
-      if (error) {
-        setError(
-          error.message.includes("Email not confirmed")
-            ? "Tu cuenta aún no está confirmada. Revisa tu correo o pide al administrador que la confirme."
-            : "Correo o contraseña incorrectos."
-        );
+    try {
+      if (modo === "entrar") {
+        await signInWithEmailAndPassword(auth(), correo.trim(), clave);
+        router.replace("/informes");
       } else {
-        router.push("/informes");
-        router.refresh();
+        const nombreLimpio = nombre.trim();
+        if (nombreLimpio.length < 3) {
+          setError("Ingresa tu nombre completo.");
+          setCargando(false);
+          return;
+        }
+        setRegistrando(true);
+        const cred = await createUserWithEmailAndPassword(auth(), correo.trim(), clave);
+        await updateProfile(cred.user, { displayName: nombreLimpio });
+        await setDoc(doc(db(), "perfiles", cred.user.uid), {
+          nombre: nombreLimpio,
+          correo: cred.user.email ?? correo.trim(),
+          rol: "tecnico",
+          creado_en: new Date().toISOString(),
+        });
+        await sendEmailVerification(cred.user).catch(() => {});
+        await recargarPerfil();
+        router.replace("/cuenta?nuevo=1");
       }
-    } else {
-      if (nombre.trim().length < 3) {
-        setError("Ingresa tu nombre completo.");
-        setCargando(false);
-        return;
-      }
-      const { data, error } = await supabase.auth.signUp({
-        email: correo,
-        password: clave,
-        options: {
-          data: { nombre: nombre.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback?next=/cuenta`,
-        },
-      });
-      if (error) {
-        setError(
-          error.message.includes("already registered")
-            ? "Ese correo ya tiene una cuenta."
-            : error.message.includes("Password")
-              ? "La contraseña debe tener al menos 6 caracteres."
-              : error.message
-        );
-      } else if (data.session) {
-        // Cuenta lista: lo primero es generar su código de recuperación
-        router.push("/cuenta?nuevo=1");
-        router.refresh();
-      } else {
-        setAviso("Cuenta creada. Confirma tu correo para entrar (o pide al administrador que confirme tu cuenta).");
-        setModo("entrar");
-      }
+    } catch (err) {
+      setRegistrando(false);
+      setError(mensajeError((err as { code?: string }).code ?? ""));
     }
     setCargando(false);
   }
@@ -90,7 +101,7 @@ export default function LoginPage() {
               <button
                 key={m}
                 type="button"
-                onClick={() => { setModo(m); setError(null); setAviso(null); }}
+                onClick={() => { setModo(m); setError(null); }}
                 className={`rounded py-1.5 font-medium ${modo === m ? "bg-white shadow-sm" : "text-gray-500"}`}
               >
                 {m === "entrar" ? "Iniciar sesión" : "Crear cuenta"}
@@ -123,7 +134,6 @@ export default function LoginPage() {
             </div>
 
             {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-            {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}
 
             <button className="boton w-full" disabled={cargando}>
               {cargando ? "Procesando…" : modo === "entrar" ? "Entrar" : "Crear cuenta"}

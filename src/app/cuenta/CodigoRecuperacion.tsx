@@ -1,24 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
+import { llamarApi } from "@/lib/firebase";
 
-export default function CodigoRecuperacion({ tieneCodigo }: { tieneCodigo: boolean }) {
-  const supabase = createClient();
+export default function CodigoRecuperacion() {
+  const [tieneCodigo, setTieneCodigo] = useState<boolean | null>(null);
   const [codigo, setCodigo] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copiado, setCopiado] = useState(false);
 
+  useEffect(() => {
+    llamarApi<{ tiene: boolean }>("/api/recuperacion")
+      .then((r) => setTieneCodigo(r.tiene))
+      .catch(() => setTieneCodigo(false));
+  }, []);
+
   async function generar() {
     if (tieneCodigo && !codigo && !confirm("Ya tienes un código. Si generas uno nuevo, el anterior dejará de servir. ¿Continuar?")) return;
     setCargando(true);
     setError(null);
-    const { data, error } = await supabase.rpc("generar_codigo_recuperacion");
+    try {
+      const r = await llamarApi<{ codigo: string }>("/api/recuperacion", {});
+      setCodigo(r.codigo);
+      setTieneCodigo(true);
+      setCopiado(false);
+    } catch {
+      setError("No se pudo generar el código. Inténtalo de nuevo.");
+    }
     setCargando(false);
-    if (error) return setError("No se pudo generar el código. Inténtalo de nuevo.");
-    setCodigo(String(data));
-    setCopiado(false);
   }
 
   async function copiar() {
@@ -49,6 +59,8 @@ export default function CodigoRecuperacion({ tieneCodigo }: { tieneCodigo: boole
           </p>
           <button type="button" className="boton-sec" onClick={copiar}>{copiado ? "✓ Copiado" : "Copiar código"}</button>
         </div>
+      ) : tieneCodigo === null ? (
+        <p className="text-sm text-gray-500">Cargando…</p>
       ) : (
         <div className="flex flex-wrap items-center gap-3">
           {tieneCodigo ? (

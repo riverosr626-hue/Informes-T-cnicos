@@ -8,6 +8,8 @@ export type Perfil = {
 export type Informe = {
   id: number;
   tecnico_id: string;
+  tecnico_nombre: string;
+  tecnico_correo: string;
   creado_en: string;
   fecha_evaluacion: string;
   tipo_evaluacion: string;
@@ -36,12 +38,33 @@ export type Informe = {
   observaciones: string | null;
   recomendaciones: string | null;
   fotos: string[];
-  perfiles?: { nombre: string; correo: string } | null;
 };
 
 export const ESTADOS_GENERALES = ["Operativo", "Operativo con observaciones", "Fuera de servicio"];
 export const TIPOS_EVALUACION = ["Preventiva", "Correctiva", "Inspección", "Puesta en marcha"];
 export const CONDICIONES = ["Bueno", "Regular", "Malo", "N/A"];
+
+// Campos del formulario (los usa el formulario y la validación del servidor)
+export const CAMPOS_TEXTO = ["cliente", "ubicacion", "marca", "modelo", "numero_serie", "observaciones", "recomendaciones"] as const;
+export const CAMPOS_NUMERICOS = [
+  "potencia_kva",
+  "horometro",
+  "voltaje_l1",
+  "voltaje_l2",
+  "voltaje_l3",
+  "frecuencia_hz",
+  "presion_aceite_psi",
+  "temperatura_c",
+  "voltaje_bateria",
+] as const;
+export const CAMPOS_CONDICION = [
+  "nivel_aceite",
+  "nivel_refrigerante",
+  "nivel_combustible",
+  "estado_filtros",
+  "estado_correas",
+  "estado_bateria",
+] as const;
 
 export function colorEstado(estado: string) {
   if (estado === "Operativo") return "bg-emerald-100 text-emerald-800";
@@ -55,4 +78,9 @@ export function formatoFecha(iso: string) {
     dateStyle: "short",
     timeStyle: "short",
   });
+}
+
+// Minúsculas y sin tildes, para buscar
+export function normalizar(texto: string | null | undefined) {
+  return (texto ?? "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }

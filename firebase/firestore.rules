@@ -1,0 +1,53 @@
+rules_version = '2';
+
+// Reglas de Firestore — pegar completo en Firebase > Firestore Database > Reglas > Publicar
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function conectado() {
+      return request.auth != null;
+    }
+
+    function esAdmin() {
+      return conectado()
+        && get(/databases/$(database)/documents/perfiles/$(request.auth.uid)).data.rol == 'admin';
+    }
+
+    // Perfiles: cada uno ve y edita el suyo (sin poder cambiar su rol); el admin ve todos.
+    // Para hacer admin a alguien: Firebase > Firestore > perfiles > su documento > rol = admin
+    match /perfiles/{uid} {
+      allow read: if conectado() && (request.auth.uid == uid || esAdmin());
+
+      allow create: if conectado()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre', 'correo', 'rol', 'creado_en'])
+        && request.resource.data.rol == 'tecnico'
+        && request.resource.data.correo == request.auth.token.email
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 120;
+
+      allow update: if conectado()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['nombre', 'correo', 'rol', 'creado_en'])
+        && request.resource.data.rol == resource.data.rol
+        && request.resource.data.correo == resource.data.correo
+        && request.resource.data.nombre is string
+        && request.resource.data.nombre.size() > 0
+        && request.resource.data.nombre.size() <= 120;
+
+      allow delete: if false;
+    }
+
+    // Informes: el técnico ve los suyos; el admin ve todos.
+    // Se crean solo desde el servidor (que los numera y firma con la cuenta conectada).
+    // Una vez enviados, solo el admin puede corregirlos o borrarlos.
+    match /informes/{id} {
+      allow read: if conectado() && (resource.data.tecnico_id == request.auth.uid || esAdmin());
+      allow create: if false;
+      allow update, delete: if esAdmin();
+    }
+
+    // contadores y codigos_recuperacion: sin acceso desde el navegador (solo el servidor)
+  }
+}

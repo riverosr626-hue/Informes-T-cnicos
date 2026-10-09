@@ -1,16 +1,15 @@
+"use client";
+
 import Encabezado from "@/components/Encabezado";
-import { obtenerSesion } from "@/lib/sesion";
+import { Protegida, useSesion } from "@/lib/sesion";
 import CodigoRecuperacion from "./CodigoRecuperacion";
 
-export const dynamic = "force-dynamic";
-
-export default async function MiCuenta() {
-  const { supabase, perfil, user } = await obtenerSesion();
-  const { data: tieneCodigo } = await supabase.rpc("tengo_codigo_recuperacion");
+function Contenido() {
+  const { perfil, usuario } = useSesion();
 
   return (
     <>
-      <Encabezado perfil={perfil} />
+      <Encabezado />
       <main className="mx-auto max-w-2xl space-y-4 px-4 py-6">
         <h1 className="text-2xl font-bold">Mi cuenta</h1>
         <div className="tarjeta">
@@ -21,12 +20,20 @@ export default async function MiCuenta() {
             </div>
             <div>
               <dt className="text-xs uppercase tracking-wide text-gray-500">Correo</dt>
-              <dd className="font-medium break-all">{user.email}</dd>
+              <dd className="font-medium break-all">{usuario?.email}</dd>
             </div>
           </dl>
         </div>
-        <CodigoRecuperacion tieneCodigo={tieneCodigo === true} />
+        <CodigoRecuperacion />
       </main>
     </>
+  );
+}
+
+export default function MiCuenta() {
+  return (
+    <Protegida>
+      <Contenido />
+    </Protegida>
   );
 }

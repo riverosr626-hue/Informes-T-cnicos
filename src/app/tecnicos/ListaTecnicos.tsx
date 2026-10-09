@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { llamarApi } from "@/lib/firebase";
 import { formatoFecha } from "@/lib/tipos";
 
 export type Tecnico = {
@@ -19,15 +18,22 @@ export type Tecnico = {
 function generarClave() {
   const letras = "abcdefghjkmnpqrstuvwxyz";
   const numeros = "23456789";
+  const azar = crypto.getRandomValues(new Uint32Array(8));
   let c = "";
-  for (let i = 0; i < 4; i++) c += letras[Math.floor(Math.random() * letras.length)];
-  for (let i = 0; i < 4; i++) c += numeros[Math.floor(Math.random() * numeros.length)];
+  for (let i = 0; i < 4; i++) c += letras[azar[i] % letras.length];
+  for (let i = 4; i < 8; i++) c += numeros[azar[i] % numeros.length];
   return c;
 }
 
-export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[]; miId: string }) {
-  const router = useRouter();
-  const supabase = createClient();
+export default function ListaTecnicos({
+  tecnicos,
+  miId,
+  alCambiar,
+}: {
+  tecnicos: Tecnico[];
+  miId: string;
+  alCambiar: () => void;
+}) {
   const [editando, setEditando] = useState<Tecnico | null>(null);
   const [clave, setClave] = useState("");
   const [cargando, setCargando] = useState(false);
@@ -46,30 +52,32 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
       return;
     }
     setCargando(true);
-    const { error } = await supabase.rpc("admin_cambiar_clave", { p_usuario: editando.id, p_clave: clave });
-    setCargando(false);
-    if (error) {
-      setMensaje({ tipo: "error", texto: error.message });
+    try {
+      await llamarApi("/api/admin/clave", { uid: editando.id, clave });
+    } catch (e) {
+      setCargando(false);
+      setMensaje({ tipo: "error", texto: (e as Error).message });
       return;
     }
+    setCargando(false);
     setMensaje({
       tipo: "ok",
       texto: `Listo. ${editando.nombre} ya puede entrar con su correo (${editando.correo}) y la contraseña: ${clave}`,
     });
     setEditando(null);
-    router.refresh();
+    alCambiar();
   }
 
   async function confirmar(t: Tecnico) {
     setCargando(true);
-    const { error } = await supabase.rpc("admin_confirmar_cuenta", { p_usuario: t.id });
+    try {
+      await llamarApi("/api/admin/confirmar", { uid: t.id });
+      setMensaje({ tipo: "ok", texto: `Cuenta de ${t.nombre} confirmada. Ya puede usar la app.` });
+    } catch (e) {
+      setMensaje({ tipo: "error", texto: (e as Error).message });
+    }
     setCargando(false);
-    setMensaje(
-      error
-        ? { tipo: "error", texto: error.message }
-        : { tipo: "ok", texto: `Cuenta de ${t.nombre} confirmada. Ya puede iniciar sesión.` }
-    );
-    router.refresh();
+    alCambiar();
   }
 
   return (

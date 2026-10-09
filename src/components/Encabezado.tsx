@@ -1,16 +1,20 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import type { Perfil } from "@/lib/tipos";
+import { useRouter } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { auth } from "@/lib/firebase";
+import { useSesion } from "@/lib/sesion";
 
-async function cerrarSesion() {
-  "use server";
-  const supabase = await createClient();
-  await supabase.auth.signOut();
-  redirect("/login");
-}
+export default function Encabezado() {
+  const { perfil } = useSesion();
+  const router = useRouter();
 
-export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
+  async function cerrarSesion() {
+    await signOut(auth());
+    router.replace("/login");
+  }
+
   return (
     <header className="no-imprimir border-b border-gray-200 bg-gray-900 text-white">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
@@ -34,9 +38,9 @@ export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
               )}
             </span>
           )}
-          <form action={cerrarSesion}>
-            <button className="rounded border border-gray-600 px-2.5 py-1 text-gray-200 hover:bg-gray-800">Salir</button>
-          </form>
+          <button onClick={cerrarSesion} className="rounded border border-gray-600 px-2.5 py-1 text-gray-200 hover:bg-gray-800">
+            Salir
+          </button>
         </div>
       </div>
     </header>
