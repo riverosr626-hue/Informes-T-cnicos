@@ -76,15 +76,21 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center px-4">
-      <div className="w-full max-w-sm">
-        <div className="mb-6 text-center">
+    <main
+      className="relative flex min-h-screen items-center justify-center bg-cover bg-center px-4"
+      style={{ backgroundImage: "url('/fondo-inicio.jpg')" }}
+    >
+      {/* Capa oscura para que el formulario se lea bien sobre la foto */}
+      <div className="absolute inset-0 bg-black/40" aria-hidden />
+
+      <div className="relative w-full max-w-sm">
+        <div className="mb-6 text-center text-white drop-shadow">
           <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl">⚡</div>
           <h1 className="text-xl font-bold">Informes de Generadores</h1>
-          <p className="text-sm text-gray-500">Evaluaciones técnicas de grupos electrógenos</p>
+          <p className="text-sm text-gray-200">Evaluaciones técnicas de grupos electrógenos</p>
         </div>
 
-        <div className="tarjeta">
+        <div className="tarjeta shadow-xl">
           <div className="mb-5 grid grid-cols-2 rounded-md bg-gray-100 p-1 text-sm">
             {(["entrar", "registro"] as const).map((m) => (
               <button
