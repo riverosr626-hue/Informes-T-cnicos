@@ -85,7 +85,8 @@ export default function LoginPage() {
 
       <div className="relative w-full max-w-sm">
         <div className="mb-6 text-center text-white drop-shadow">
-          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500 text-2xl">⚡</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-le-energy.png" alt="LE Energy" className="mx-auto mb-3 h-20 w-auto" />
           <h1 className="text-xl font-bold">Informes de Generadores</h1>
           <p className="text-sm text-gray-200">Evaluaciones técnicas de grupos electrógenos</p>
         </div>
