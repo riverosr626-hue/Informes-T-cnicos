@@ -22,7 +22,7 @@ returns boolean
 language sql stable
 security definer set search_path = public
 as $$
-  select exists (select 1 from public.codigos_recuperacion where usuario_id = auth.uid());
+  select exists (select 1 from public.codigos_recuperacion where usuario_id = auth.uid() and codigo_hash <> 'usado');
 $$;
 
 -- Genera (o reemplaza) el código del usuario conectado y lo devuelve una sola vez
@@ -73,7 +73,7 @@ begin
   end if;
 
   select * into r from public.codigos_recuperacion where usuario_id = v_usuario;
-  if not found then
+  if not found or r.codigo_hash = 'usado' then
     return 'invalido';
   end if;
 
@@ -98,7 +98,9 @@ begin
    where id = v_usuario;
 
   -- El código sirve una sola vez
-  delete from public.codigos_recuperacion where usuario_id = v_usuario;
+  update public.codigos_recuperacion
+     set codigo_hash = 'usado', intentos = 0, bloqueado_hasta = null
+   where usuario_id = v_usuario;
   return 'ok';
 end;
 $$;
