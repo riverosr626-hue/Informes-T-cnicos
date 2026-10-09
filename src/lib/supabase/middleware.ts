@@ -3,7 +3,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 type CookieParaGuardar = { name: string; value: string; options: CookieOptions };
 import { NextResponse, type NextRequest } from "next/server";
 
-const RUTAS_PUBLICAS = ["/login", "/auth"];
+const RUTAS_PUBLICAS = ["/login", "/auth", "/recuperar"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

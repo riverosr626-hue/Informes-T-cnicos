@@ -27,6 +27,8 @@ export default async function ListaInformes({
 
   const { data: informes, error } = await consulta.returns<Informe[]>();
 
+  const { data: tieneCodigo } = await supabase.rpc("tengo_codigo_recuperacion");
+
   let tecnicos: Perfil[] = [];
   if (esAdmin) {
     const { data } = await supabase.from("perfiles").select("id, nombre, correo, rol").order("nombre");
@@ -37,6 +39,14 @@ export default async function ListaInformes({
     <>
       <Encabezado perfil={perfil} />
       <main className="mx-auto max-w-5xl px-4 py-6">
+        {tieneCodigo === false && (
+          <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm">
+            <span>
+              🔑 <strong>Crea tu código de recuperación</strong>: si olvidas tu contraseña, podrás recuperarla tú mismo.
+            </span>
+            <Link href="/cuenta" className="boton">Crear código</Link>
+          </div>
+        )}
         <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
           <div>
             <h1 className="text-2xl font-bold">{esAdmin ? "Todos los informes" : "Mis informes"}</h1>
