@@ -2,6 +2,7 @@ import Link from "next/link";
 import Encabezado from "@/components/Encabezado";
 import { obtenerSesion } from "@/lib/sesion";
 import ListaTecnicos, { type Tecnico } from "./ListaTecnicos";
+import SolicitudesRecuperacion, { type Solicitud } from "./SolicitudesRecuperacion";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,10 @@ export default async function PaginaTecnicos() {
     );
   }
 
-  const { data, error } = await supabase.rpc("admin_listar_tecnicos");
+  const [{ data, error }, { data: solicitudes }] = await Promise.all([
+    supabase.rpc("admin_listar_tecnicos"),
+    supabase.rpc("admin_listar_solicitudes"),
+  ]);
 
   return (
     <>
@@ -32,6 +36,7 @@ export default async function PaginaTecnicos() {
         <p className="mb-5 text-sm text-gray-500">
           Cuentas registradas. Desde aquí puedes asignar una contraseña nueva a quien la olvidó o confirmar cuentas.
         </p>
+        <SolicitudesRecuperacion solicitudes={(solicitudes as Solicitud[] | null) ?? []} />
         {error && <p className="tarjeta text-red-700">Error al cargar técnicos: {error.message}</p>}
         {data && <ListaTecnicos tecnicos={data as Tecnico[]} miId={perfil.id} />}
       </main>

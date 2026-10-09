@@ -5,11 +5,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-// Recuperar contraseña: con código personal (automático) o con enlace por correo
+// Recuperar contraseña: con un código (personal o entregado por un administrador)
+// o pidiendo ayuda a los administradores, que reciben el aviso en la app.
 export default function RecuperarPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [metodo, setMetodo] = useState<"codigo" | "correo">("codigo");
+  const [metodo, setMetodo] = useState<"codigo" | "ayuda">("codigo");
   const [correo, setCorreo] = useState("");
   const [codigo, setCodigo] = useState("");
   const [clave, setClave] = useState("");
@@ -39,6 +40,10 @@ export default function RecuperarPage() {
       setCargando(false);
       return setError("Demasiados intentos fallidos. Espera 30 minutos e inténtalo de nuevo.");
     }
+    if (data === "vencido") {
+      setCargando(false);
+      return setError("Ese código ya venció (duran 24 horas). Pide uno nuevo al administrador.");
+    }
     if (data !== "ok") {
       setCargando(false);
       return setError("El correo o el código de recuperación no son correctos.");
@@ -55,24 +60,20 @@ export default function RecuperarPage() {
     router.refresh();
   }
 
-  async function conCorreo(e: React.FormEvent) {
+  async function pedirAyuda(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setAviso(null);
     setCargando(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(correo, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/restablecer`,
-    });
+    const { error } = await supabase.rpc("solicitar_recuperacion", { p_correo: correo });
     setCargando(false);
     if (error) {
-      setError(
-        error.message.toLowerCase().includes("rate")
-          ? "Ya pediste un correo hace poco. Espera un minuto e inténtalo de nuevo."
-          : "No se pudo enviar el correo. Usa tu código de recuperación o pide ayuda al administrador."
-      );
-    } else {
-      setAviso("Si el correo tiene una cuenta, te llegará un enlace para crear una contraseña nueva. Revisa también Spam.");
+      setError("No se pudo enviar la solicitud. Inténtalo de nuevo en un momento.");
+      return;
     }
+    setAviso(
+      "Listo. Avisamos a los administradores. Cuando te entreguen tu código, vuelve aquí, elige \"Tengo un código\" y crea tu contraseña nueva."
+    );
   }
 
   return (
@@ -85,14 +86,14 @@ export default function RecuperarPage() {
 
         <div className="tarjeta">
           <div className="mb-5 grid grid-cols-2 rounded-md bg-gray-100 p-1 text-sm">
-            {(["codigo", "correo"] as const).map((m) => (
+            {(["codigo", "ayuda"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setMetodo(m); setError(null); setAviso(null); }}
-                className={`rounded py-1.5 font-medium ${metodo === m ? "bg-white shadow-sm" : "text-gray-500"}`}
+                className={`rounded py-1.5 font-medium ${metodo === m ? "bg-marca-500 text-white shadow-sm" : "text-gray-500 hover:text-grafito"}`}
               >
-                {m === "codigo" ? "Con mi código" : "Por correo"}
+                {m === "codigo" ? "Tengo un código" : "No tengo código"}
               </button>
             ))}
           </div>
@@ -100,7 +101,8 @@ export default function RecuperarPage() {
           {metodo === "codigo" ? (
             <form onSubmit={conCodigo} className="space-y-4">
               <p className="text-sm text-gray-500">
-                Usa el código de recuperación que guardaste (ej. <span className="font-mono">K7PM-3XQA-9RTD</span>).
+                Usa tu código personal o el que te entregó un administrador
+                (ej. <span className="font-mono">K7PM-3XQA-9RTD</span>).
               </p>
               <div>
                 <label className="etiqueta">Correo</label>
@@ -123,20 +125,23 @@ export default function RecuperarPage() {
               <button className="boton w-full" disabled={cargando}>{cargando ? "Procesando…" : "Cambiar contraseña"}</button>
             </form>
           ) : (
-            <form onSubmit={conCorreo} className="space-y-4">
-              <p className="text-sm text-gray-500">Te enviaremos un correo con un enlace para crear una contraseña nueva.</p>
+            <form onSubmit={pedirAyuda} className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Escribe tu correo y enviaremos un aviso a los administradores. Ellos te darán un código para
+                crear tu contraseña nueva (por WhatsApp, teléfono o en persona).
+              </p>
               <div>
-                <label className="etiqueta">Correo</label>
+                <label className="etiqueta">Correo de tu cuenta</label>
                 <input className="campo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="email" />
               </div>
               {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
               {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}
-              <button className="boton w-full" disabled={cargando}>{cargando ? "Enviando…" : "Enviar correo"}</button>
+              <button className="boton w-full" disabled={cargando}>{cargando ? "Enviando…" : "Pedir código al administrador"}</button>
             </form>
           )}
 
           <p className="mt-4 border-t border-gray-100 pt-3 text-center text-xs text-gray-500">
-            ¿No tienes código ni te llega el correo? Pide al administrador que te asigne una contraseña nueva.
+            El código de un administrador vale 24 horas y sirve una sola vez.
           </p>
           <div className="mt-2 text-center text-sm">
             <Link href="/login" className="text-gray-600 hover:underline">← Volver a iniciar sesión</Link>

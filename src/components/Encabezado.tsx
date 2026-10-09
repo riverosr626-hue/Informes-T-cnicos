@@ -10,8 +10,17 @@ async function cerrarSesion() {
   redirect("/login");
 }
 
-export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
+export default async function Encabezado({ perfil }: { perfil: Perfil | null }) {
+  // Aviso para administradores: técnicos que pidieron recuperar su contraseña
+  let pendientes = 0;
+  if (perfil?.rol === "admin") {
+    const supabase = await createClient();
+    const { data } = await supabase.rpc("admin_listar_solicitudes");
+    pendientes = Array.isArray(data) ? data.length : 0;
+  }
+
   return (
+    <>
     <header className="no-imprimir border-b border-black/10 bg-grafito text-white">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-5">
@@ -22,7 +31,14 @@ export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
           </Link>
           <nav className="flex gap-4 text-sm text-gray-300">
             <Link href="/informes" className="hover:text-white">Informes</Link>
-            {perfil?.rol === "admin" && <Link href="/tecnicos" className="hover:text-white">Técnicos</Link>}
+            {perfil?.rol === "admin" && (
+              <Link href="/tecnicos" className="flex items-center gap-1.5 hover:text-white">
+                Técnicos
+                {pendientes > 0 && (
+                  <span className="rounded-full bg-red-500 px-1.5 text-xs font-bold leading-5 text-white">{pendientes}</span>
+                )}
+              </Link>
+            )}
             <Link href="/cuenta" className="hover:text-white">Mi cuenta</Link>
           </nav>
         </div>
@@ -41,5 +57,16 @@ export default function Encabezado({ perfil }: { perfil: Perfil | null }) {
         </div>
       </div>
     </header>
+    {pendientes > 0 && (
+      <div className="no-imprimir border-b border-red-200 bg-red-50">
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm text-red-800">
+          <span>
+            🔔 {pendientes === 1 ? "1 persona pidió" : `${pendientes} personas pidieron`} ayuda para recuperar su contraseña.
+          </span>
+          <Link href="/tecnicos#solicitudes" className="font-semibold underline">Ver solicitudes</Link>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
