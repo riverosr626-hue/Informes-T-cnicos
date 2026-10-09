@@ -5,6 +5,7 @@ import { esAdmin, esPropietario } from "@/lib/tipos";
 import ListaCuentas, { type Tecnico } from "./ListaCuentas";
 import SolicitudesRecuperacion, { type Solicitud } from "./SolicitudesRecuperacion";
 import InvitarTecnicos from "./InvitarTecnicos";
+import EspacioSupabase, { type UsoEspacio } from "./EspacioSupabase";
 
 export const dynamic = "force-dynamic";
 
@@ -37,18 +38,21 @@ export default async function Configuracion() {
     );
   }
 
-  const [{ data: cuentas, error }, { data: solicitudes }] = await Promise.all([
+  const propietario = esPropietario(perfil.rol);
+  const [{ data: cuentas, error }, { data: solicitudes }, { data: espacio }] = await Promise.all([
     supabase.rpc("admin_listar_cuentas"),
     supabase.rpc("admin_listar_pedidos_clave"),
+    propietario ? supabase.rpc("propietario_uso_espacio") : Promise.resolve({ data: null }),
   ]);
   const listaSolicitudes = (solicitudes as Solicitud[] | null) ?? [];
-  const propietario = esPropietario(perfil.rol);
+  const uso = Array.isArray(espacio) && espacio.length ? (espacio[0] as UsoEspacio) : null;
 
   const indice = [
     { id: "solicitudes", texto: `Pedidos de contraseña${listaSolicitudes.length ? ` (${listaSolicitudes.length})` : ""}` },
     { id: "cuentas", texto: "Cuentas y permisos" },
     { id: "invitar", texto: "Invitar técnicos" },
     { id: "niveles", texto: "Qué puede hacer cada nivel" },
+    ...(propietario ? [{ id: "espacio", texto: "Espacio de almacenamiento" }] : []),
   ];
 
   return (
@@ -127,6 +131,20 @@ export default async function Configuracion() {
             ))}
           </div>
         </Seccion>
+
+        {propietario && (
+          <Seccion
+            id="espacio"
+            titulo="Espacio de almacenamiento"
+            descripcion="Cuánto espacio queda en Supabase. Solo el propietario ve esta sección."
+          >
+            {uso ? (
+              <EspacioSupabase uso={uso} />
+            ) : (
+              <p className="tarjeta text-sm text-gray-500">No se pudo leer el espacio usado.</p>
+            )}
+          </Seccion>
+        )}
       </main>
     </>
   );
