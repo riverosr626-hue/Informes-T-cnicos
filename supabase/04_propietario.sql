@@ -187,7 +187,7 @@ begin
   end if;
   update public.perfiles set activo = p_activo where id = p_usuario;
   update auth.users
-     set banned_until = case when p_activo then null else 'infinity'::timestamptz end,
+     set banned_until = case when p_activo then null else '2999-12-31 00:00:00+00'::timestamptz end,
          updated_at = now()
    where id = p_usuario;
 end;
@@ -243,3 +243,7 @@ begin
   return 'ok';
 end;
 $$;
+
+-- Corrección 2026-10-09: 'infinity' en banned_until rompía el servicio de inicio de sesión
+-- de Supabase; ahora se usa una fecha lejana.
+update auth.users set banned_until = '2999-12-31 00:00:00+00' where banned_until = 'infinity'::timestamptz;

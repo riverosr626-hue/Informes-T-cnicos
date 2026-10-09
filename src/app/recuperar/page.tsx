@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { crearClienteRecuperacion } from "@/lib/supabase/implicito";
 
 // Recuperar contraseña: con un código (personal o entregado por un administrador)
 // o con un enlace al correo de la cuenta (y aviso a los administradores en la app).
@@ -68,7 +69,7 @@ export default function RecuperarPage() {
     // 1) Enlace de recuperación al correo de la propia cuenta (sirve para todos, también propietarios)
     // 2) Aviso a los administradores dentro de la app, por si el correo no llega
     const [{ error: errCorreo }, { error }] = await Promise.all([
-      supabase.auth.resetPasswordForEmail(correo.trim(), {
+      crearClienteRecuperacion().auth.resetPasswordForEmail(correo.trim(), {
         redirectTo: `${window.location.origin}/auth/callback?next=/restablecer`,
       }),
       supabase.rpc("solicitar_recuperacion", { p_correo: correo }),

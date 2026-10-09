@@ -1,18 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/client";
+import { crearClienteRecuperacion } from "@/lib/supabase/implicito";
 
-// Página a la que llega el técnico desde el correo de recuperación
+// Página a la que se llega desde el correo de recuperación (sirve en cualquier navegador o celular)
 export default function RestablecerPage() {
   const router = useRouter();
   const supabase = createClient();
+  const recuperacion = useRef<SupabaseClient | null>(null);
+  const [correoCuenta, setCorreoCuenta] = useState<string | null>(null);
+  const [estado, setEstado] = useState<"revisando" | "listo" | "invalido">("revisando");
   const [clave, setClave] = useState("");
   const [clave2, setClave2] = useState("");
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const hash = window.location.hash;
+      if (hash.includes("error")) return setEstado("invalido");
+      if (hash.includes("access_token")) {
+        // Sesión que viene en el enlace del correo
+        const cliente = crearClienteRecuperacion();
+        const { data } = await cliente.auth.getSession();
+        if (data.session?.user?.email) {
+          recuperacion.current = cliente;
+          setCorreoCuenta(data.session.user.email);
+          window.history.replaceState(null, "", window.location.pathname);
+          return setEstado("listo");
+        }
+        return setEstado("invalido");
+      }
+      // Ya tiene la sesión iniciada en este navegador
+      const { data } = await supabase.auth.getUser();
+      setEstado(data.user ? "listo" : "invalido");
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -21,7 +50,12 @@ export default function RestablecerPage() {
     if (clave !== clave2) return setError("Las contraseñas no coinciden.");
 
     setCargando(true);
-    const { error } = await supabase.auth.updateUser({ password: clave });
+    const cliente = recuperacion.current ?? supabase;
+    const { error } = await cliente.auth.updateUser({ password: clave });
+    if (!error && recuperacion.current && correoCuenta) {
+      // Abrir la sesión normal de la app con la contraseña nueva
+      await supabase.auth.signInWithPassword({ email: correoCuenta, password: clave });
+    }
     setCargando(false);
 
     if (error) {
@@ -50,7 +84,16 @@ export default function RestablecerPage() {
         </div>
 
         <div className="tarjeta">
-          {listo ? (
+          {estado === "revisando" ? (
+            <p className="text-center text-sm text-gray-500">Revisando el enlace…</p>
+          ) : estado === "invalido" ? (
+            <div className="space-y-3 text-center">
+              <p className="rounded bg-red-50 p-3 text-sm text-red-700">
+                El enlace no es válido, venció o ya fue usado. Pide uno nuevo.
+              </p>
+              <Link href="/recuperar" className="boton inline-block">Pedir un enlace nuevo</Link>
+            </div>
+          ) : listo ? (
             <p className="rounded bg-emerald-50 p-3 text-sm text-emerald-700">
               Contraseña actualizada. Entrando a la app…
             </p>

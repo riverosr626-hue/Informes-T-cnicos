@@ -4,7 +4,7 @@ type CookieParaGuardar = { name: string; value: string; options: CookieOptions }
 import { NextResponse, type NextRequest } from "next/server";
 import { COOKIE_RECORDAR, ajustarOpciones, quiereRecordar } from "@/lib/recordar";
 
-const RUTAS_PUBLICAS = ["/login", "/auth", "/recuperar"];
+const RUTAS_PUBLICAS = ["/login", "/auth", "/recuperar", "/restablecer"];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
