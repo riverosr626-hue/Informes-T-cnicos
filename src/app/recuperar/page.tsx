@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 // Recuperar contraseña: con un código (personal o entregado por un administrador)
-// o pidiendo ayuda a los administradores, que reciben el aviso en la app.
+// o con un enlace al correo de la cuenta (y aviso a los administradores en la app).
 export default function RecuperarPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -65,14 +65,23 @@ export default function RecuperarPage() {
     setError(null);
     setAviso(null);
     setCargando(true);
-    const { error } = await supabase.rpc("solicitar_recuperacion", { p_correo: correo });
+    // 1) Enlace de recuperación al correo de la propia cuenta (sirve para todos, también propietarios)
+    // 2) Aviso a los administradores dentro de la app, por si el correo no llega
+    const [{ error: errCorreo }, { error }] = await Promise.all([
+      supabase.auth.resetPasswordForEmail(correo.trim(), {
+        redirectTo: `${window.location.origin}/auth/callback?next=/restablecer`,
+      }),
+      supabase.rpc("solicitar_recuperacion", { p_correo: correo }),
+    ]);
     setCargando(false);
-    if (error) {
+    if (error && errCorreo) {
       setError("No se pudo enviar la solicitud. Inténtalo de nuevo en un momento.");
       return;
     }
     setAviso(
-      "Listo. Avisamos a los administradores. Cuando te entreguen tu código, vuelve aquí, elige \"Tengo un código\" y crea tu contraseña nueva."
+      errCorreo
+        ? "Avisamos a los administradores. Cuando te entreguen tu código, vuelve aquí, elige \"Tengo un código\" y crea tu contraseña nueva."
+        : "Listo. Si el correo tiene cuenta, te enviamos un enlace para crear tu contraseña nueva (revisa también Spam). Además avisamos a los administradores."
     );
   }
 
@@ -128,8 +137,8 @@ export default function RecuperarPage() {
           ) : (
             <form onSubmit={pedirAyuda} className="space-y-4">
               <p className="text-sm text-gray-500">
-                Escribe tu correo y enviaremos un aviso a los administradores. Ellos te darán un código para
-                crear tu contraseña nueva (por WhatsApp, teléfono o en persona).
+                Escribe tu correo y te enviaremos un enlace para crear tu contraseña nueva. También avisamos a
+                los administradores, que pueden darte un código si el correo no llega.
               </p>
               <div>
                 <label className="etiqueta">Correo de tu cuenta</label>
@@ -137,7 +146,7 @@ export default function RecuperarPage() {
               </div>
               {error && <p className="rounded bg-red-50 p-2 text-sm text-red-700">{error}</p>}
               {aviso && <p className="rounded bg-emerald-50 p-2 text-sm text-emerald-700">{aviso}</p>}
-              <button className="boton w-full" disabled={cargando}>{cargando ? "Enviando…" : "Pedir código al administrador"}</button>
+              <button className="boton w-full" disabled={cargando}>{cargando ? "Enviando…" : "Enviar enlace de recuperación"}</button>
             </form>
           )}
 
