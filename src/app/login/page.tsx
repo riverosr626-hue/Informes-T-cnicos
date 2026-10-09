@@ -91,14 +91,14 @@ export default function LoginPage() {
           <p className="text-sm text-gray-200">Evaluaciones técnicas de grupos electrógenos</p>
         </div>
 
-        <div className="tarjeta !border-[#86A9B4] !bg-[#9DC0CB] text-gray-900 shadow-xl">
-          <div className="mb-5 grid grid-cols-2 rounded-md bg-[#86A9B4] p-1 text-sm">
+        <div className="tarjeta !border-[#5C5C5C] !bg-[#494949] text-white shadow-xl">
+          <div className="mb-5 grid grid-cols-2 rounded-md bg-[#3A3A3A] p-1 text-sm">
             {(["entrar", "registro"] as const).map((m) => (
               <button
                 key={m}
                 type="button"
                 onClick={() => { setModo(m); setError(null); setAviso(null); }}
-                className={`rounded py-1.5 font-medium ${modo === m ? "bg-[#1BA45F] text-white shadow-sm" : "text-gray-700 hover:text-gray-900"}`}
+                className={`rounded py-1.5 font-medium ${modo === m ? "bg-[#1BA45F] text-white shadow-sm" : "text-gray-300 hover:text-white"}`}
               >
                 {m === "entrar" ? "Iniciar sesión" : "Crear cuenta"}
               </button>
@@ -108,18 +108,18 @@ export default function LoginPage() {
           <form onSubmit={enviar} className="space-y-4">
             {modo === "registro" && (
               <div>
-                <label className="etiqueta !text-gray-800">Nombre completo</label>
-                <input className="campo !border-[#86A9B4]" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
+                <label className="etiqueta !text-gray-200">Nombre completo</label>
+                <input className="campo !border-[#6A6A6A] !bg-[#5A5A5A] !text-white" value={nombre} onChange={(e) => setNombre(e.target.value)} required />
               </div>
             )}
             <div>
-              <label className="etiqueta !text-gray-800">Correo</label>
-              <input className="campo !border-[#86A9B4]" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="email" />
+              <label className="etiqueta !text-gray-200">Correo</label>
+              <input className="campo !border-[#6A6A6A] !bg-[#5A5A5A] !text-white" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} required autoComplete="email" />
             </div>
             <div>
-              <label className="etiqueta !text-gray-800">Contraseña</label>
+              <label className="etiqueta !text-gray-200">Contraseña</label>
               <input
-                className="campo !border-[#86A9B4]"
+                className="campo !border-[#6A6A6A] !bg-[#5A5A5A] !text-white"
                 type="password"
                 value={clave}
                 onChange={(e) => setClave(e.target.value)}
@@ -139,7 +139,7 @@ export default function LoginPage() {
 
           {modo === "entrar" && (
             <div className="mt-4 text-center text-sm">
-              <Link href="/recuperar" className="font-medium text-[#126B3E] hover:underline">¿Olvidaste tu contraseña?</Link>
+              <Link href="/recuperar" className="font-medium text-[#4FD18B] hover:underline">¿Olvidaste tu contraseña?</Link>
             </div>
           )}
         </div>
