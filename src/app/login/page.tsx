@@ -44,7 +44,7 @@ export default function LoginPage() {
             : "Correo o contraseña incorrectos."
         );
       } else {
-        router.push("/informes");
+        router.push("/");
         router.refresh();
       }
     } else {

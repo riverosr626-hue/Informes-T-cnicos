@@ -34,7 +34,7 @@ export default function RestablecerPage() {
     }
     setListo(true);
     setTimeout(() => {
-      router.push("/informes");
+      router.push("/");
       router.refresh();
     }, 1500);
   }

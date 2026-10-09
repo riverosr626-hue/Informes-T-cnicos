@@ -64,8 +64,7 @@ export default function SolicitudesRecuperacion({ solicitudes, miRol }: { solici
   if (solicitudes.length === 0 && !entregado) return null;
 
   return (
-    <section id="solicitudes" className="mb-6 space-y-3">
-      <h2 className="text-lg font-semibold">Solicitudes de recuperación de contraseña</h2>
+    <div className="space-y-3">
 
       {entregado && (
         <div className="tarjeta border-marca-300 bg-marca-50">
@@ -134,6 +133,6 @@ export default function SolicitudesRecuperacion({ solicitudes, miRol }: { solici
           </table>
         </div>
       )}
-    </section>
+    </div>
   );
 }

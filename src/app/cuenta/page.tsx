@@ -1,6 +1,8 @@
 import Encabezado from "@/components/Encabezado";
 import { obtenerSesion } from "@/lib/sesion";
 import CodigoRecuperacion from "./CodigoRecuperacion";
+import CambiarClave from "./CambiarClave";
+import { NOMBRE_ROL } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -23,8 +25,13 @@ export default async function MiCuenta() {
               <dt className="text-xs uppercase tracking-wide text-gray-500">Correo</dt>
               <dd className="font-medium break-all">{user.email}</dd>
             </div>
+            <div>
+              <dt className="text-xs uppercase tracking-wide text-gray-500">Nivel</dt>
+              <dd className="font-medium">{perfil ? NOMBRE_ROL[perfil.rol] : "—"}</dd>
+            </div>
           </dl>
         </div>
+        <CambiarClave />
         <CodigoRecuperacion tieneCodigo={tieneCodigo === true} />
       </main>
     </>
