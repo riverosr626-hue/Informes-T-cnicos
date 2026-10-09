@@ -6,6 +6,7 @@
 --   propietario   → todo lo anterior + cambia contraseñas de administradores,
 --                   cambia niveles, quita el acceso o elimina cuentas,
 --                   y es el único que puede editar o borrar informes
+-- (Ya aplicado en el proyecto Informes Técnicos el 2026-10-09)
 -- Pegar completo en Supabase > SQL Editor > New query > Run
 -- (requiere 01 schema.sql, 02_recuperacion.sql y 03_solicitudes_recuperacion.sql)
 -- =====================================================================
@@ -53,19 +54,12 @@ as $$
 $$;
 
 -- ---------- Informes: editar y borrar, solo el propietario ----------
-drop policy if exists "editar informes admin" on public.informes;
-drop policy if exists "editar informes propietario" on public.informes;
-create policy "editar informes propietario" on public.informes
-  for update using (public.es_propietario());
+alter policy "editar informes admin" on public.informes using (public.es_propietario());
+alter policy "borrar informes admin" on public.informes using (public.es_propietario());
 
-drop policy if exists "borrar informes admin" on public.informes;
-drop policy if exists "borrar informes propietario" on public.informes;
-create policy "borrar informes propietario" on public.informes
-  for delete using (public.es_propietario());
-
--- ---------- Lista de técnicos (ahora con estado de acceso) ----------
-drop function if exists public.admin_listar_tecnicos();
-create function public.admin_listar_tecnicos()
+-- ---------- Lista de cuentas (con nivel y estado de acceso) ----------
+-- (reemplaza a admin_listar_tecnicos, que queda sin uso)
+create or replace function public.admin_listar_cuentas()
 returns table (id uuid, nombre text, correo text, rol text, activo boolean, confirmado boolean,
                creado_en timestamptz, ultimo_ingreso timestamptz, total_informes bigint)
 language plpgsql
@@ -73,7 +67,7 @@ security definer set search_path = public, auth
 as $$
 begin
   if not public.es_admin() then
-    raise exception 'Solo los administradores pueden ver los técnicos';
+    raise exception 'Solo los administradores pueden ver las cuentas';
   end if;
   return query
     select p.id, p.nombre, p.correo, p.rol, p.activo,
@@ -86,9 +80,9 @@ begin
 end;
 $$;
 
--- ---------- Solicitudes de recuperación (ahora indica el nivel) ----------
-drop function if exists public.admin_listar_solicitudes();
-create function public.admin_listar_solicitudes()
+-- ---------- Solicitudes de recuperación (con el nivel de quien pide) ----------
+-- (reemplaza a admin_listar_solicitudes, que queda sin uso)
+create or replace function public.admin_listar_pedidos_clave()
 returns table (id bigint, usuario_id uuid, nombre text, correo text, rol text, creado_en timestamptz)
 language plpgsql
 stable
@@ -196,57 +190,29 @@ begin
      set banned_until = case when p_activo then null else 'infinity'::timestamptz end,
          updated_at = now()
    where id = p_usuario;
-  if not p_activo then
-    -- Cierra las sesiones abiertas de esa persona
-    delete from auth.sessions where user_id = p_usuario;
-    delete from auth.refresh_tokens where user_id = p_usuario::text;
-  end if;
 end;
 $$;
 
--- ---------- Solo el propietario: eliminar una cuenta ----------
--- Solo cuentas sin informes (los informes no se pierden: a esas cuentas se les quita el acceso).
-create or replace function public.propietario_eliminar_cuenta(p_usuario uuid)
-returns text
-language plpgsql
-security definer set search_path = public, auth
-as $$
-declare
-  n bigint;
-begin
-  if not public.es_propietario() then
-    raise exception 'Solo el propietario puede eliminar cuentas';
-  end if;
-  if p_usuario = auth.uid() then
-    raise exception 'No puedes eliminar tu propia cuenta';
-  end if;
-  select count(*) into n from public.informes where tecnico_id = p_usuario;
-  if n > 0 then
-    raise exception 'Esta cuenta tiene % informe(s). Para no perderlos, quítale el acceso en vez de eliminarla.', n;
-  end if;
-  delete from auth.users where id = p_usuario;  -- borra también su perfil y códigos
-  return 'ok';
-end;
-$$;
+-- Eliminar cuentas de forma definitiva se hace desde Supabase:
+-- Authentication > Users > (marcar la cuenta) > Delete user.
 
 -- ---------- Permisos ----------
 revoke all on function public.es_propietario() from public, anon;
 revoke all on function public._rol_de(uuid) from public, anon, authenticated;
 revoke all on function public._puede_gestionar_clave(uuid) from public, anon, authenticated;
-revoke all on function public.admin_listar_tecnicos() from public, anon;
-revoke all on function public.admin_listar_solicitudes() from public, anon;
+revoke all on function public.admin_listar_cuentas() from public, anon;
+revoke all on function public.admin_listar_pedidos_clave() from public, anon;
 revoke all on function public.propietario_cambiar_rol(uuid, text) from public, anon;
 revoke all on function public.propietario_cambiar_acceso(uuid, boolean) from public, anon;
-revoke all on function public.propietario_eliminar_cuenta(uuid) from public, anon;
 
 grant execute on function public.es_propietario() to authenticated;
-grant execute on function public.admin_listar_tecnicos() to authenticated;
-grant execute on function public.admin_listar_solicitudes() to authenticated;
+grant execute on function public.admin_listar_cuentas() to authenticated;
+grant execute on function public.admin_listar_pedidos_clave() to authenticated;
 grant execute on function public.propietario_cambiar_rol(uuid, text) to authenticated;
 grant execute on function public.propietario_cambiar_acceso(uuid, boolean) to authenticated;
-grant execute on function public.propietario_eliminar_cuenta(uuid) to authenticated;
 
 -- =====================================================================
 -- Para nombrar al primer propietario:
 --   update public.perfiles set rol = 'propietario' where correo = 'TU_CORREO';
+-- (Las cuentas sin acceso quedan con activo = false y auth.users.banned_until = 'infinity'.)
 -- =====================================================================

@@ -3,19 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { formatoFecha } from "@/lib/tipos";
+import { esPropietario, formatoFecha, NOMBRE_ROL, type Rol } from "@/lib/tipos";
 
 export type Solicitud = {
   id: number;
   usuario_id: string;
   nombre: string;
   correo: string;
+  rol: Rol;
   creado_en: string;
 };
 
 // Solicitudes de "olvidé mi contraseña": el administrador genera un código
 // de un solo uso (vale 24 horas) y se lo entrega al técnico.
-export default function SolicitudesRecuperacion({ solicitudes }: { solicitudes: Solicitud[] }) {
+export default function SolicitudesRecuperacion({ solicitudes, miRol }: { solicitudes: Solicitud[]; miRol: Rol }) {
   const router = useRouter();
   const supabase = createClient();
   const [cargando, setCargando] = useState<number | null>(null);
@@ -102,14 +103,21 @@ export default function SolicitudesRecuperacion({ solicitudes }: { solicitudes: 
             <tbody className="divide-y divide-gray-100">
               {solicitudes.map((s) => (
                 <tr key={s.id}>
-                  <td className="px-4 py-2.5 font-medium">{s.nombre}</td>
+                  <td className="px-4 py-2.5 font-medium">
+                    {s.nombre}
+                    {s.rol !== "tecnico" && <span className="ml-2 text-xs text-gray-500">({NOMBRE_ROL[s.rol]})</span>}
+                  </td>
                   <td className="px-4 py-2.5 break-all">{s.correo}</td>
                   <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-500">{formatoFecha(s.creado_en)}</td>
                   <td className="px-4 py-2.5">
                     <div className="flex flex-wrap justify-end gap-2">
-                      <button type="button" className="boton px-3 py-1 text-xs" onClick={() => generar(s)} disabled={cargando !== null}>
-                        {cargando === s.id ? "Generando…" : "Generar código"}
-                      </button>
+                      {s.rol === "tecnico" || esPropietario(miRol) ? (
+                        <button type="button" className="boton px-3 py-1 text-xs" onClick={() => generar(s)} disabled={cargando !== null}>
+                          {cargando === s.id ? "Generando…" : "Generar código"}
+                        </button>
+                      ) : (
+                        <span className="self-center text-xs text-gray-500">Lo atiende el propietario</span>
+                      )}
                       <button
                         type="button"
                         className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"

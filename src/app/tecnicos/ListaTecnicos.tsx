@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { formatoFecha } from "@/lib/tipos";
+import { esPropietario, formatoFecha, NOMBRE_ROL, type Rol } from "@/lib/tipos";
 
 export type Tecnico = {
   id: string;
   nombre: string;
   correo: string;
-  rol: string;
+  rol: Rol;
+  activo: boolean;
   confirmado: boolean;
   creado_en: string;
   ultimo_ingreso: string | null;
@@ -25,16 +26,26 @@ function generarClave() {
   return c;
 }
 
-export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[]; miId: string }) {
+const botonChico =
+  "rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50";
+
+export default function ListaTecnicos({ tecnicos, miId, miRol }: { tecnicos: Tecnico[]; miId: string; miRol: Rol }) {
   const router = useRouter();
   const supabase = createClient();
+  const soyPropietario = esPropietario(miRol);
   const [editando, setEditando] = useState<Tecnico | null>(null);
+  const [quitando, setQuitando] = useState<Tecnico | null>(null);
   const [clave, setClave] = useState("");
   const [cargando, setCargando] = useState(false);
   const [mensaje, setMensaje] = useState<{ tipo: "ok" | "error"; texto: string } | null>(null);
 
+  // El administrador solo gestiona contraseñas de técnicos; el propietario, de todos
+  const puedeCambiarClave = (t: Tecnico) => t.id !== miId && (soyPropietario || t.rol === "tecnico");
+  const puedeAdministrar = (t: Tecnico) => soyPropietario && t.id !== miId;
+
   function abrirCambio(t: Tecnico) {
     setEditando(t);
+    setQuitando(null);
     setClave(generarClave());
     setMensaje(null);
   }
@@ -72,6 +83,37 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
     router.refresh();
   }
 
+  async function cambiarRol(t: Tecnico, rol: Rol) {
+    if (rol === t.rol) return;
+    setCargando(true);
+    const { error } = await supabase.rpc("propietario_cambiar_rol", { p_usuario: t.id, p_rol: rol });
+    setCargando(false);
+    setMensaje(
+      error
+        ? { tipo: "error", texto: error.message }
+        : { tipo: "ok", texto: `${t.nombre} ahora es ${NOMBRE_ROL[rol]}.` }
+    );
+    router.refresh();
+  }
+
+  async function cambiarAcceso(t: Tecnico, activo: boolean) {
+    setCargando(true);
+    const { error } = await supabase.rpc("propietario_cambiar_acceso", { p_usuario: t.id, p_activo: activo });
+    setCargando(false);
+    setQuitando(null);
+    setMensaje(
+      error
+        ? { tipo: "error", texto: error.message }
+        : {
+            tipo: "ok",
+            texto: activo
+              ? `${t.nombre} vuelve a tener acceso a la app.`
+              : `${t.nombre} ya no puede entrar a la app. Sus informes se conservan.`,
+          }
+    );
+    router.refresh();
+  }
+
   return (
     <div className="space-y-4">
       {mensaje && (
@@ -84,20 +126,35 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
         <div className="tarjeta border-marca-300">
           <h2 className="font-semibold">Nueva contraseña para {editando.nombre}</h2>
           <p className="mb-3 text-sm text-gray-500">
-            Te sugerimos una contraseña temporal; puedes cambiarla. Díctasela al técnico; después él puede seguir usándola.
+            Te sugerimos una contraseña temporal; puedes cambiarla. Entrégasela a la persona; después puede seguir usándola.
           </p>
           <div className="flex flex-wrap gap-2">
-            <input
-              className="campo max-w-xs font-mono"
-              value={clave}
-              onChange={(e) => setClave(e.target.value)}
-              minLength={6}
-            />
+            <input className="campo max-w-xs font-mono" value={clave} onChange={(e) => setClave(e.target.value)} minLength={6} />
             <button type="button" className="boton-sec" onClick={() => setClave(generarClave())}>Otra</button>
             <button type="button" className="boton" onClick={guardarClave} disabled={cargando}>
               {cargando ? "Guardando…" : "Guardar contraseña"}
             </button>
             <button type="button" className="boton-sec" onClick={() => setEditando(null)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {quitando && (
+        <div className="tarjeta border-red-300 bg-red-50">
+          <h2 className="font-semibold text-red-800">¿Quitar el acceso a {quitando.nombre}?</h2>
+          <p className="mb-3 text-sm text-red-800">
+            No podrá volver a entrar a la app. Sus informes se conservan y puedes devolverle el acceso cuando quieras.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+              onClick={() => cambiarAcceso(quitando, false)}
+              disabled={cargando}
+            >
+              {cargando ? "Quitando…" : "Sí, quitar acceso"}
+            </button>
+            <button type="button" className="boton-sec" onClick={() => setQuitando(null)}>Cancelar</button>
           </div>
         </div>
       )}
@@ -108,6 +165,7 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
             <tr>
               <th className="px-4 py-2.5">Nombre</th>
               <th className="px-4 py-2.5">Correo</th>
+              <th className="px-4 py-2.5">Nivel</th>
               <th className="px-4 py-2.5">Estado</th>
               <th className="px-4 py-2.5">Informes</th>
               <th className="px-4 py-2.5">Último ingreso</th>
@@ -116,16 +174,38 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
           </thead>
           <tbody className="divide-y divide-gray-100">
             {tecnicos.map((t) => (
-              <tr key={t.id}>
+              <tr key={t.id} className={t.activo ? "" : "bg-gray-50 text-gray-400"}>
                 <td className="px-4 py-2.5 font-medium">
                   {t.nombre}
-                  {t.rol === "admin" && (
-                    <span className="ml-2 rounded bg-marca-500 px-1.5 py-0.5 text-xs font-semibold text-white">Admin</span>
-                  )}
+                  {t.id === miId && <span className="ml-1 text-xs text-gray-400">(tú)</span>}
                 </td>
                 <td className="px-4 py-2.5 break-all">{t.correo}</td>
                 <td className="px-4 py-2.5">
-                  {t.confirmado ? (
+                  {puedeAdministrar(t) ? (
+                    <select
+                      className="rounded-md border border-gray-300 bg-white px-2 py-1 text-xs text-gray-700"
+                      value={t.rol}
+                      onChange={(e) => cambiarRol(t, e.target.value as Rol)}
+                      disabled={cargando}
+                    >
+                      <option value="tecnico">Técnico</option>
+                      <option value="admin">Administrador</option>
+                      <option value="propietario">Propietario</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-xs font-semibold ${
+                        t.rol === "tecnico" ? "bg-gray-100 text-gray-700" : "bg-marca-500 text-white"
+                      }`}
+                    >
+                      {NOMBRE_ROL[t.rol]}
+                    </span>
+                  )}
+                </td>
+                <td className="px-4 py-2.5">
+                  {!t.activo ? (
+                    <span className="rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">Sin acceso</span>
+                  ) : t.confirmado ? (
                     <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800">Activa</span>
                   ) : (
                     <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Sin confirmar</span>
@@ -139,16 +219,31 @@ export default function ListaTecnicos({ tecnicos, miId }: { tecnicos: Tecnico[];
                 </td>
                 <td className="px-4 py-2.5">
                   <div className="flex flex-wrap justify-end gap-2">
-                    {!t.confirmado && (
-                      <button type="button" className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50" onClick={() => confirmar(t)} disabled={cargando}>
+                    {t.activo && !t.confirmado && (
+                      <button type="button" className={botonChico} onClick={() => confirmar(t)} disabled={cargando}>
                         Confirmar cuenta
                       </button>
                     )}
-                    {t.id !== miId && (
-                      <button type="button" className="rounded-md border border-gray-300 bg-white px-2.5 py-1 text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50" onClick={() => abrirCambio(t)}>
+                    {t.activo && puedeCambiarClave(t) && (
+                      <button type="button" className={botonChico} onClick={() => abrirCambio(t)}>
                         Cambiar contraseña
                       </button>
                     )}
+                    {puedeAdministrar(t) &&
+                      (t.activo ? (
+                        <button
+                          type="button"
+                          className="rounded-md border border-red-300 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 disabled:opacity-50"
+                          onClick={() => { setQuitando(t); setEditando(null); setMensaje(null); }}
+                          disabled={cargando}
+                        >
+                          Quitar acceso
+                        </button>
+                      ) : (
+                        <button type="button" className={botonChico} onClick={() => cambiarAcceso(t, true)} disabled={cargando}>
+                          Devolver acceso
+                        </button>
+                      ))}
                   </div>
                 </td>
               </tr>

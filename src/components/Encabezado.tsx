@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Perfil } from "@/lib/tipos";
+import { esAdmin, type Perfil } from "@/lib/tipos";
 
 async function cerrarSesion() {
   "use server";
@@ -13,9 +13,9 @@ async function cerrarSesion() {
 export default async function Encabezado({ perfil }: { perfil: Perfil | null }) {
   // Aviso para administradores: técnicos que pidieron recuperar su contraseña
   let pendientes = 0;
-  if (perfil?.rol === "admin") {
+  if (esAdmin(perfil?.rol)) {
     const supabase = await createClient();
-    const { data } = await supabase.rpc("admin_listar_solicitudes");
+    const { data } = await supabase.rpc("admin_listar_pedidos_clave");
     pendientes = Array.isArray(data) ? data.length : 0;
   }
 
@@ -31,7 +31,7 @@ export default async function Encabezado({ perfil }: { perfil: Perfil | null }) 
           </Link>
           <nav className="flex gap-4 text-sm text-gray-300">
             <Link href="/informes" className="hover:text-white">Informes</Link>
-            {perfil?.rol === "admin" && (
+            {esAdmin(perfil?.rol) && (
               <Link href="/tecnicos" className="flex items-center gap-1.5 hover:text-white">
                 Técnicos
                 {pendientes > 0 && (
@@ -46,8 +46,10 @@ export default async function Encabezado({ perfil }: { perfil: Perfil | null }) 
           {perfil && (
             <span className="hidden text-gray-300 sm:inline">
               {perfil.nombre}
-              {perfil.rol === "admin" && (
-                <span className="ml-2 rounded bg-marca-500 px-1.5 py-0.5 text-xs font-semibold text-white">Admin</span>
+              {esAdmin(perfil.rol) && (
+                <span className="ml-2 rounded bg-marca-500 px-1.5 py-0.5 text-xs font-semibold text-white">
+                  {perfil.rol === "propietario" ? "Propietario" : "Admin"}
+                </span>
               )}
             </span>
           )}

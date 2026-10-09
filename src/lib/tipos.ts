@@ -2,7 +2,19 @@ export type Perfil = {
   id: string;
   nombre: string;
   correo: string;
-  rol: "tecnico" | "admin";
+  rol: Rol;
+};
+
+export type Rol = "tecnico" | "admin" | "propietario";
+
+// Administradores y propietarios ven todo
+export const esAdmin = (rol?: string | null) => rol === "admin" || rol === "propietario";
+export const esPropietario = (rol?: string | null) => rol === "propietario";
+
+export const NOMBRE_ROL: Record<Rol, string> = {
+  tecnico: "Técnico",
+  admin: "Administrador",
+  propietario: "Propietario",
 };
 
 export type Informe = {

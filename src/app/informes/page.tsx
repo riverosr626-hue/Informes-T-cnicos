@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Encabezado from "@/components/Encabezado";
 import { obtenerSesion } from "@/lib/sesion";
-import { colorEstado, formatoFecha, type Informe, type Perfil } from "@/lib/tipos";
+import { colorEstado, esAdmin as esAdminRol, formatoFecha, type Informe, type Perfil } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +12,7 @@ export default async function ListaInformes({
 }) {
   const { tecnico, q } = await searchParams;
   const { supabase, perfil } = await obtenerSesion();
-  const esAdmin = perfil?.rol === "admin";
+  const esAdmin = esAdminRol(perfil?.rol);
 
   let consulta = supabase
     .from("informes")
