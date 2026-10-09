@@ -216,3 +216,30 @@ grant execute on function public.propietario_cambiar_acceso(uuid, boolean) to au
 --   update public.perfiles set rol = 'propietario' where correo = 'TU_CORREO';
 -- (Las cuentas sin acceso quedan con activo = false y auth.users.banned_until = 'infinity'.)
 -- =====================================================================
+
+-- ---------- Las cuentas sin acceso no pueden pedir código ----------
+create or replace function public.solicitar_recuperacion(p_correo text)
+returns text
+language plpgsql
+security definer set search_path = public, auth
+as $$
+declare
+  v_usuario uuid;
+begin
+  select u.id into v_usuario
+    from auth.users u
+    join public.perfiles p on p.id = u.id
+   where lower(u.email) = lower(trim(coalesce(p_correo, '')))
+     and p.activo;
+  if v_usuario is null then
+    return 'ok';  -- no revela si el correo existe o si la cuenta está sin acceso
+  end if;
+  update public.solicitudes_recuperacion
+     set creado_en = now()
+   where usuario_id = v_usuario and estado = 'pendiente';
+  if not found then
+    insert into public.solicitudes_recuperacion (usuario_id) values (v_usuario);
+  end if;
+  return 'ok';
+end;
+$$;
