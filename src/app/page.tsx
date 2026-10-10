@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Encabezado from "@/components/Encabezado";
 import { obtenerSesion } from "@/lib/sesion";
-import { cerrarSesion } from "@/lib/acciones";
 import { esAdmin, NOMBRE_ROL } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -104,23 +103,8 @@ export default async function Inicio() {
             titulo={admin ? "Todos los informes" : "Mis informes"}
             texto="Buscar, revisar e imprimir informes"
           />
-          {admin && (
-            <Tarjeta
-              href="/configuracion"
-              icono="⚙️"
-              titulo="Configuración"
-              texto="Cuentas, niveles, accesos y contraseñas"
-              aviso={pendientes}
-            />
-          )}
-          <Tarjeta href="/cuenta" icono="👤" titulo="Mi cuenta" texto="Mis datos, contraseña y código de recuperación" />
         </div>
 
-        <form action={cerrarSesion} className="mt-8 text-center">
-          <button className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <span aria-hidden>⎋</span> Cerrar sesión
-          </button>
-        </form>
       </main>
     </>
   );
