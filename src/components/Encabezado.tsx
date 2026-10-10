@@ -17,8 +17,7 @@ export default async function Encabezado({ perfil }: { perfil: Perfil | null }) 
     { href: "/", texto: "Inicio" },
     { href: "/informes", texto: "Informes" },
     { href: "/informes/nuevo", texto: "Nuevo informe" },
-    ...(esAdm ? [{ href: "/configuracion", texto: "Configuración" }] : []),
-    { href: "/cuenta", texto: "Mi cuenta" },
+    // Configuración y Mi cuenta están en el menú del círculo de usuario
   ];
 
   return (
