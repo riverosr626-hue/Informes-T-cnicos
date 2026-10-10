@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { cerrarSesion } from "@/lib/acciones";
 import { esAdmin, NOMBRE_ROL, type Perfil } from "@/lib/tipos";
+import MenuUsuario from "./MenuUsuario";
 
 export default async function Encabezado({ perfil }: { perfil: Perfil | null }) {
   // Aviso para administradores: técnicos que pidieron recuperar su contraseña
@@ -35,20 +35,15 @@ export default async function Encabezado({ perfil }: { perfil: Perfil | null }) 
             </span>
           </Link>
 
-          <div className="flex items-center gap-3 text-sm">
-            {perfil && (
-              <span className="hidden text-right leading-tight text-gray-300 md:block">
-                {perfil.nombre}
-                <br />
-                <span className="text-xs text-marca-300">{NOMBRE_ROL[perfil.rol]}</span>
-              </span>
-            )}
-            <form action={cerrarSesion}>
-              <button className="flex items-center gap-1.5 rounded-md border border-white/25 px-3 py-1.5 font-medium text-white hover:bg-white/10">
-                <span aria-hidden>⎋</span> Cerrar sesión
-              </button>
-            </form>
-          </div>
+          {perfil && (
+            <MenuUsuario
+              nombre={perfil.nombre}
+              correo={perfil.correo}
+              rol={NOMBRE_ROL[perfil.rol]}
+              esAdmin={esAdm}
+              pendientes={pendientes}
+            />
+          )}
         </div>
 
         <nav className="border-t border-white/10">
