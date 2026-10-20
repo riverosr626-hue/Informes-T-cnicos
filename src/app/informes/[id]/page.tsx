@@ -77,7 +77,9 @@ export default async function DetalleInforme({ params }: { params: Promise<{ id:
         <div className="tarjeta">
           <h2 className="mb-3 text-sm font-bold uppercase tracking-wide">Equipo</h2>
           <dl className="grid gap-4 sm:grid-cols-3">
-            <Dato label="Nombre del equipo" valor={i.nombre_equipo || [i.marca, i.modelo].filter(Boolean).join(" ")} />
+            <Dato label="Nombre del equipo" valor={i.nombre_equipo} />
+            <Dato label="Marca" valor={i.marca} />
+            <Dato label="Modelo" valor={i.modelo} />
             <Dato label="N° de serie" valor={i.numero_serie} />
             <Dato label="Horómetro" valor={i.horometro != null ? `${i.horometro} h` : null} />
             {i.potencia_kva != null && <Dato label="Potencia" valor={`${i.potencia_kva} kVA`} />}

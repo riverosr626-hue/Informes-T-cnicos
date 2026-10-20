@@ -92,6 +92,8 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
         cliente: texto("cliente"),
         ubicacion: texto("ubicacion"),
         nombre_equipo: texto("nombre_equipo"),
+        marca: texto("marca"),
+        modelo: texto("modelo"),
         numero_serie: texto("numero_serie"),
         horometro,
         descripcion: texto("descripcion"),
@@ -131,7 +133,13 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
         <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-800">Equipo</h2>
         <div className="grid gap-4 sm:grid-cols-3">
           <Campo label="Nombre del equipo">
-            <input name="nombre_equipo" className="campo" placeholder="Ej. Generador Cummins 150 kVA" />
+            <input name="nombre_equipo" className="campo" placeholder="Ej. Generador principal" />
+          </Campo>
+          <Campo label="Marca del equipo">
+            <input name="marca" className="campo" placeholder="Ej. Cummins" />
+          </Campo>
+          <Campo label="Modelo del equipo">
+            <input name="modelo" className="campo" placeholder="Ej. C150D5" />
           </Campo>
           <Campo label="N° de serie del equipo">
             <input name="numero_serie" className="campo" />

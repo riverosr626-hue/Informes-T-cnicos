@@ -23,7 +23,7 @@ export default async function ListaInformes({
   if (esAdmin && tecnico) consulta = consulta.eq("tecnico_id", tecnico);
   const busqueda = (q ?? "").replace(/[,()%*]/g, " ").trim();
   if (busqueda)
-    consulta = consulta.or(`cliente.ilike.%${busqueda}%,ubicacion.ilike.%${busqueda}%,numero_serie.ilike.%${busqueda}%,nombre_equipo.ilike.%${busqueda}%`);
+    consulta = consulta.or(`cliente.ilike.%${busqueda}%,ubicacion.ilike.%${busqueda}%,numero_serie.ilike.%${busqueda}%,nombre_equipo.ilike.%${busqueda}%,marca.ilike.%${busqueda}%,modelo.ilike.%${busqueda}%`);
 
   const { data: informes, error } = await consulta.returns<Informe[]>();
 
@@ -106,7 +106,7 @@ export default async function ListaInformes({
                       <div className="text-xs text-gray-500">{i.ubicacion}</div>
                     </td>
                     <td className="px-4 py-2.5">
-                      <div>{i.nombre_equipo || [i.marca, i.modelo].filter(Boolean).join(" ") || "—"}</div>
+                      <div>{[i.nombre_equipo, [i.marca, i.modelo].filter(Boolean).join(" ")].filter(Boolean).join(" · ") || "—"}</div>
                       {i.numero_serie && <div className="text-xs text-gray-500">N° {i.numero_serie}</div>}
                     </td>
                     {esAdmin && <td className="px-4 py-2.5">{i.perfiles?.nombre ?? "—"}</td>}

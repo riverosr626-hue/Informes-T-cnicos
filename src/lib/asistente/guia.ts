@@ -24,7 +24,7 @@ export const TEMAS: Tema[] = [
     claves: ["crear informe", "nuevo informe", "subir informe", "hacer informe", "registrar", "evaluacion", "informe nuevo", "como hago un informe"],
     roles: TODOS,
     respuesta:
-      "Entra a \"Nuevo informe\" (menú superior). Completa nombre y ubicación del cliente, nombre del equipo, N° de serie y horómetro. " +
+      "Entra a \"Nuevo informe\" (menú superior). Completa nombre y ubicación del cliente, nombre, marca y modelo del equipo, N° de serie y horómetro. " +
       "Luego escribe la descripción (el \"Asistente de redacción\" te ayuda) y agrega fotos o videos. Presiona \"Enviar informe\": queda guardado a tu nombre.",
     enlace: { href: "/informes/nuevo", texto: "Ir a Nuevo informe" },
   },
@@ -55,7 +55,7 @@ export const TEMAS: Tema[] = [
     claves: ["ver informe", "buscar", "mis informes", "lista", "encontrar", "filtrar", "historial"],
     roles: ["tecnico"],
     respuesta:
-      "En \"Informes\" ves todos los informes que tú subiste. Puedes buscar por cliente, ubicación, equipo o N° de serie. " +
+      "En \"Informes\" ves todos los informes que tú subiste. Puedes buscar por cliente, ubicación, equipo, marca, modelo o N° de serie. " +
       "Solo ves los tuyos; los de otros técnicos los revisan los administradores.",
     enlace: { href: "/informes", texto: "Ir a Informes" },
   },
@@ -65,7 +65,7 @@ export const TEMAS: Tema[] = [
     claves: ["ver informe", "buscar", "todos los informes", "lista", "encontrar", "filtrar", "historial", "por tecnico"],
     roles: ADMINS,
     respuesta:
-      "En \"Informes\" ves los informes de todos los técnicos. Puedes buscar por cliente, ubicación, equipo o N° de serie y filtrar por técnico con la lista desplegable.",
+      "En \"Informes\" ves los informes de todos los técnicos. Puedes buscar por cliente, ubicación, equipo, marca, modelo o N° de serie y filtrar por técnico con la lista desplegable.",
     enlace: { href: "/informes", texto: "Ir a Informes" },
   },
   {

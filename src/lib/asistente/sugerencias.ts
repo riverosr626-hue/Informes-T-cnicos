@@ -84,6 +84,8 @@ export function revisarInforme(v: Valores): Revision {
   if (!v.cliente?.trim()) faltantes.push("Nombre del cliente");
   if (!v.ubicacion?.trim()) faltantes.push("Ubicación del cliente");
   if (!v.nombre_equipo?.trim()) faltantes.push("Nombre del equipo");
+  if (!v.marca?.trim()) faltantes.push("Marca");
+  if (!v.modelo?.trim()) faltantes.push("Modelo");
   if (!v.numero_serie?.trim()) faltantes.push("N° de serie");
   if (!v.horometro?.trim()) faltantes.push("Horómetro");
   else if (numero(v.horometro) === null) consejos.push("El horómetro debe ser un número (ej. 1250).");
