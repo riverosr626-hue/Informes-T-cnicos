@@ -15,8 +15,14 @@ export default function AsistenteIA({ conectada, proveedor, modelo }: { conectad
         </p>
       )}
 
+      <p className="rounded border border-marca-200 bg-marca-50 p-3 text-sm text-marca-800">
+        <strong>Conexión personal (la más fácil):</strong> cualquier usuario, incluidos los técnicos, puede tocar &quot;✨ Conectar IA&quot; en el asistente,
+        elegir Claude, ChatGPT, Gemini u otro, y pegar su propia clave. Queda guardada solo en su dispositivo.
+      </p>
+
       <div className="text-sm text-gray-700">
-        <h3 className="mb-2 font-semibold">{conectada ? "Cambiar o quitar la IA" : "Cómo conectar una IA"}</h3>
+        <h3 className="mb-2 font-semibold">{conectada ? "IA para toda la empresa: cambiar o quitar" : "IA para toda la empresa (opcional)"}</h3>
+        <p className="mb-2 text-xs text-gray-500">Con esto todos usan la IA sin poner su propia clave; el costo va a la cuenta de la empresa.</p>
         <ol className="list-decimal space-y-1.5 pl-5">
           <li>
             Consigue una clave de API: <strong>Claude</strong> en{" "}

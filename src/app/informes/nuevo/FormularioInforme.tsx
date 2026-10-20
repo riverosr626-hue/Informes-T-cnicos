@@ -150,7 +150,7 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
         </div>
       </section>
 
-      <AsistenteRedaccion valores={valores} onDescripcion={cambiarDescripcion} />
+      <AsistenteRedaccion usuarioId={usuarioId} valores={valores} onDescripcion={cambiarDescripcion} />
 
       <section className="tarjeta space-y-4">
         <Campo label="Descripción">

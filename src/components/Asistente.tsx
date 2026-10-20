@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { buscarTema, temaRestringido, temasPara } from "@/lib/asistente/guia";
+import { leerConexion, servicioPorId, type ConexionPersonal } from "@/lib/asistente/servicios";
 import type { Rol } from "@/lib/tipos";
+import ConectarIA from "./ConectarIA";
 
 type Mensaje = { de: "persona" | "asistente"; texto: string; enlace?: { href: string; texto: string }; aviso?: string };
 
@@ -24,7 +26,20 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
   const [texto, setTexto] = useState("");
   const [pensando, setPensando] = useState(false);
   const [ia, setIa] = useState<{ ia: boolean; proveedor: string | null } | null>(null);
+  const [personal, setPersonal] = useState<ConexionPersonal | null>(null);
+  const [configurando, setConfigurando] = useState(false);
   const fondo = useRef<HTMLDivElement>(null);
+
+  // IA personal conectada en este dispositivo
+  useEffect(() => {
+    const leer = () => setPersonal(leerConexion(usuarioId));
+    leer();
+    window.addEventListener("asistente-ia", leer);
+    return () => window.removeEventListener("asistente-ia", leer);
+  }, [usuarioId]);
+
+  const iaActiva = Boolean(personal) || Boolean(ia?.ia);
+  const nombreIA = personal ? servicioPorId(personal.servicio)?.nombre ?? "IA personal" : ia?.proveedor ?? null;
 
   // Recupera la conversación guardada en este dispositivo
   useEffect(() => {
@@ -92,7 +107,7 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
     setMensajes(conPregunta);
     setTexto("");
 
-    if (ia?.ia) {
+    if (iaActiva) {
       setPensando(true);
       try {
         const r = await fetch("/api/asistente", {
@@ -101,6 +116,7 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
           body: JSON.stringify({
             mensajes: conPregunta.slice(1).map((m) => ({ de: m.de, texto: m.texto })),
             formulario: datosDelFormulario(),
+            ia: personal ?? undefined,
           }),
         });
         const d = (await r.json()) as { texto?: string; error?: string };
@@ -153,12 +169,19 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
             <div>
               <div className="font-semibold">Asistente</div>
               <div className="text-xs text-gray-300">
-                {ia === null ? "…" : ia.ia ? `Con IA · ${ia.proveedor}` : "Guía básica (sin IA)"}
+                {iaActiva ? `Con IA · ${nombreIA}${personal ? " (tuya)" : ""}` : ia === null ? "…" : "Guía básica (sin IA)"}
               </div>
             </div>
             <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() => setConfigurando((c) => !c)}
+                className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/10 hover:text-white"
+              >
+                {iaActiva ? "⚙ IA" : "✨ Conectar IA"}
+              </button>
               <button type="button" onClick={borrar} className="rounded px-2 py-1 text-xs text-gray-300 hover:bg-white/10 hover:text-white">
-                Borrar conversación
+                Borrar
               </button>
               <button type="button" onClick={() => setAbierto(false)} className="rounded px-2 py-1 text-lg leading-none hover:bg-white/10" aria-label="Cerrar asistente">
                 ×
@@ -167,6 +190,7 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
           </div>
 
           <div className="flex-1 space-y-3 overflow-y-auto bg-fondo p-3 text-sm">
+            {configurando && <ConectarIA usuarioId={usuarioId} onListo={() => setConfigurando(false)} />}
             {mensajes.map((m, i) => (
               <div key={i} className={m.de === "persona" ? "flex justify-end" : "flex justify-start"}>
                 <div
@@ -202,7 +226,7 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
             <div ref={fondo} />
           </div>
 
-          {enFormulario && !ia?.ia && (
+          {enFormulario && !iaActiva && (
             <p className="border-t border-gray-100 bg-marca-50 px-3 py-1.5 text-xs text-marca-800">
               Para redactar este informe usa el panel &quot;Asistente de redacción&quot; dentro del formulario.
             </p>
@@ -219,7 +243,7 @@ export default function Asistente({ usuarioId, nombre, rol }: { usuarioId: strin
               className="campo"
               value={texto}
               onChange={(e) => setTexto(e.target.value)}
-              placeholder={ia?.ia && enFormulario ? "Ej: ayúdame a redactar la descripción" : "Escribe tu pregunta…"}
+              placeholder={iaActiva && enFormulario ? "Ej: ayúdame a redactar la descripción" : "Escribe tu pregunta…"}
               maxLength={1000}
             />
             <button className="boton" disabled={pensando || !texto.trim()}>

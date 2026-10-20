@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { configIA, NOMBRE_PROVEEDOR, preguntarIA, type MensajeIA } from "@/lib/asistente/ia";
+import { configIA, configPersonal, NOMBRE_PROVEEDOR, preguntarIA, type MensajeIA } from "@/lib/asistente/ia";
 import { guiaComoTexto } from "@/lib/asistente/guia";
 import { NOMBRE_ROL, type Rol } from "@/lib/tipos";
 
@@ -38,15 +38,23 @@ export async function POST(req: Request) {
   const u = await usuarioActual();
   if (!u) return NextResponse.json({ error: "Sin sesión" }, { status: 401 });
 
-  const cfg = configIA();
-  if (!cfg) return NextResponse.json({ error: "No hay una IA conectada." }, { status: 503 });
-
-  let cuerpo: { mensajes?: { de: string; texto: string }[]; formulario?: Record<string, string> };
+  let cuerpo: {
+    mensajes?: { de: string; texto: string }[];
+    formulario?: Record<string, string>;
+    ia?: { servicio?: unknown; clave?: unknown; modelo?: unknown };
+  };
   try {
     cuerpo = await req.json();
   } catch {
     return NextResponse.json({ error: "Pedido inválido." }, { status: 400 });
   }
+
+  // Primero la IA personal de la persona (si la conectó en su dispositivo); si no, la de la empresa.
+  // La clave personal solo se usa para esta consulta: no se guarda ni se registra en el servidor.
+  const personal = cuerpo.ia ? configPersonal(cuerpo.ia) : null;
+  if (cuerpo.ia && !personal) return NextResponse.json({ error: "La conexión de IA no es válida." }, { status: 400 });
+  const cfg = personal ?? configIA();
+  if (!cfg) return NextResponse.json({ error: "No hay una IA conectada." }, { status: 503 });
 
   const mensajes: MensajeIA[] = (cuerpo.mensajes ?? [])
     .filter((m) => m && typeof m.texto === "string" && m.texto.trim())

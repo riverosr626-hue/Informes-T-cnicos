@@ -187,12 +187,12 @@ export const TEMAS: Tema[] = [
   {
     id: "ia",
     titulo: "Conectar una inteligencia artificial",
-    claves: ["ia", "inteligencia artificial", "claude", "chatgpt", "openai", "conectar", "api"],
-    roles: PROPIETARIO,
+    claves: ["ia", "inteligencia artificial", "claude", "chatgpt", "gemini", "openai", "conectar", "api", "clave de api"],
+    roles: TODOS,
     respuesta:
-      "En Configuración → \"Asistente con IA\" ves si hay una IA conectada y los pasos para conectar Claude o ChatGPT. " +
-      "La clave se guarda como variable secreta en Vercel, nunca dentro de la app.",
-    enlace: { href: "/configuracion#asistente-ia", texto: "Ir a Asistente con IA" },
+      "Toca \"✨ Conectar IA\" arriba en este asistente (o \"Conectar IA para redactar\" en el formulario). Elige el servicio (Claude, ChatGPT, Gemini u otro), " +
+      "pega tu clave de API y presiona \"Probar y guardar\". La clave queda solo en tu dispositivo y el uso se cobra a la cuenta dueña de la clave. " +
+      "Con la IA conectada, el asistente conversa y puede redactar o mejorar la descripción del informe.",
   },
   {
     id: "privacidad",

@@ -9,6 +9,8 @@
 //   IA_URL       = (opcional, solo "openai") dirección de una API compatible
 // También sirven ANTHROPIC_API_KEY u OPENAI_API_KEY en vez de IA_CLAVE.
 
+import { servicioPorId } from "./servicios";
+
 export type Proveedor = "anthropic" | "openai";
 
 export type ConfigIA = {
@@ -16,6 +18,7 @@ export type ConfigIA = {
   clave: string;
   modelo: string;
   url: string;
+  nombre?: string;
 };
 
 const MODELO_POR_DEFECTO: Record<Proveedor, string> = {
@@ -51,6 +54,16 @@ export function configIA(): ConfigIA | null {
       : `${(process.env.IA_URL?.trim() || "https://api.openai.com/v1").replace(/\/+$/, "")}/chat/completions`;
 
   return { proveedor, clave, modelo: process.env.IA_MODELO?.trim() || MODELO_POR_DEFECTO[proveedor], url };
+}
+
+// Conexión personal enviada por el usuario (solo servicios de la lista permitida)
+export function configPersonal(c: { servicio?: unknown; clave?: unknown; modelo?: unknown } | undefined): ConfigIA | null {
+  if (!c || typeof c.clave !== "string" || typeof c.servicio !== "string") return null;
+  const s = servicioPorId(c.servicio);
+  const clave = c.clave.trim();
+  if (!s || clave.length < 10 || clave.length > 300) return null;
+  const modelo = typeof c.modelo === "string" && /^[\w.:/-]{1,80}$/.test(c.modelo.trim()) ? c.modelo.trim() : s.modelo;
+  return { proveedor: s.tipo, clave, modelo, url: s.url, nombre: s.nombre };
 }
 
 export type MensajeIA = { role: "user" | "assistant"; content: string };

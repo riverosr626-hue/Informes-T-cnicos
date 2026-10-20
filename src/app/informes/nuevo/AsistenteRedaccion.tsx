@@ -2,19 +2,26 @@
 
 import { useEffect, useState } from "react";
 import { FRASES, PLANTILLA, proximaMantencion, revisarInforme } from "@/lib/asistente/sugerencias";
+import { leerConexion, type ConexionPersonal } from "@/lib/asistente/servicios";
+import ConectarIA from "@/components/ConectarIA";
 
 // Panel que ayuda a escribir la descripción: revisa qué falta, ofrece una plantilla,
 // frases comunes y, si hay una IA conectada, redacta o mejora el texto.
 export default function AsistenteRedaccion({
+  usuarioId,
   valores,
   onDescripcion,
 }: {
+  usuarioId: string;
   valores: Record<string, string>;
   onDescripcion: (texto: string, modo: "agregar" | "reemplazar") => void;
 }) {
   const { faltantes, consejos } = revisarInforme(valores);
   const [grupo, setGrupo] = useState(FRASES[0].grupo);
-  const [ia, setIa] = useState(false);
+  const [iaEmpresa, setIaEmpresa] = useState(false);
+  const [personal, setPersonal] = useState<ConexionPersonal | null>(null);
+  const [conectando, setConectando] = useState(false);
+  const ia = iaEmpresa || Boolean(personal);
   const [propuesta, setPropuesta] = useState<string | null>(null);
   const [redactando, setRedactando] = useState(false);
   const [errorIa, setErrorIa] = useState<string | null>(null);
@@ -23,9 +30,13 @@ export default function AsistenteRedaccion({
   useEffect(() => {
     fetch("/api/asistente")
       .then((r) => (r.ok ? r.json() : { ia: false }))
-      .then((d: { ia?: boolean }) => setIa(Boolean(d.ia)))
-      .catch(() => setIa(false));
-  }, []);
+      .then((d: { ia?: boolean }) => setIaEmpresa(Boolean(d.ia)))
+      .catch(() => setIaEmpresa(false));
+    const leer = () => setPersonal(leerConexion(usuarioId));
+    leer();
+    window.addEventListener("asistente-ia", leer);
+    return () => window.removeEventListener("asistente-ia", leer);
+  }, [usuarioId]);
 
   async function redactarConIA() {
     setRedactando(true);
@@ -39,7 +50,7 @@ export default function AsistenteRedaccion({
       const r = await fetch("/api/asistente", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ mensajes: [{ de: "persona", texto: pedido }], formulario: datos }),
+        body: JSON.stringify({ mensajes: [{ de: "persona", texto: pedido }], formulario: datos, ia: personal ?? undefined }),
       });
       const d = (await r.json()) as { texto?: string; error?: string };
       if (r.ok && d.texto) setPropuesta(d.texto);
@@ -91,12 +102,22 @@ export default function AsistenteRedaccion({
             🕒 Próxima mantención: {proxima.toLocaleString("es-CL")} h
           </button>
         )}
-        {ia && (
+        {ia ? (
           <button type="button" className="boton text-xs" onClick={redactarConIA} disabled={redactando}>
             {redactando ? "Redactando…" : valores.descripcion?.trim() ? "✨ Mejorar con IA" : "✨ Redactar con IA"}
           </button>
+        ) : (
+          <button type="button" className="boton-sec text-xs" onClick={() => setConectando((c) => !c)}>
+            ✨ Conectar IA para redactar
+          </button>
         )}
       </div>
+
+      {conectando && !ia && (
+        <div className="mb-3">
+          <ConectarIA usuarioId={usuarioId} onListo={() => setConectando(false)} />
+        </div>
+      )}
 
       {errorIa && <p className="mb-3 rounded bg-red-50 p-2 text-xs text-red-700">{errorIa}</p>}
 
