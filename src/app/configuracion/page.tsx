@@ -6,6 +6,8 @@ import ListaCuentas, { type Tecnico } from "./ListaCuentas";
 import SolicitudesRecuperacion, { type Solicitud } from "./SolicitudesRecuperacion";
 import InvitarTecnicos from "./InvitarTecnicos";
 import EspacioSupabase, { type UsoEspacio } from "./EspacioSupabase";
+import AsistenteIA from "./AsistenteIA";
+import { configIA, NOMBRE_PROVEEDOR } from "@/lib/asistente/ia";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +47,7 @@ export default async function Configuracion() {
     propietario ? supabase.rpc("propietario_uso_espacio") : Promise.resolve({ data: null }),
   ]);
   const listaSolicitudes = (solicitudes as Solicitud[] | null) ?? [];
+  const ia = propietario ? configIA() : null;
   const uso = Array.isArray(espacio) && espacio.length ? (espacio[0] as UsoEspacio) : null;
 
   const indice = [
@@ -52,7 +55,7 @@ export default async function Configuracion() {
     { id: "cuentas", texto: "Cuentas y permisos" },
     { id: "invitar", texto: "Invitar técnicos" },
     { id: "niveles", texto: "Qué puede hacer cada nivel" },
-    ...(propietario ? [{ id: "espacio", texto: "Espacio de almacenamiento" }] : []),
+    ...(propietario ? [{ id: "espacio", texto: "Espacio de almacenamiento" }, { id: "asistente-ia", texto: "Asistente con IA" }] : []),
   ];
 
   return (
@@ -143,6 +146,15 @@ export default async function Configuracion() {
             ) : (
               <p className="tarjeta text-sm text-gray-500">No se pudo leer el espacio usado.</p>
             )}
+          </Seccion>
+        )}
+        {propietario && (
+          <Seccion
+            id="asistente-ia"
+            titulo="Asistente con IA"
+            descripcion="Conecta Claude u otra IA al asistente de la app. Solo el propietario ve esta sección."
+          >
+            <AsistenteIA conectada={Boolean(ia)} proveedor={ia ? NOMBRE_PROVEEDOR[ia.proveedor] : null} modelo={ia?.modelo ?? null} />
           </Seccion>
         )}
       </main>

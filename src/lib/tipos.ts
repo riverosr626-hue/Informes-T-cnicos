@@ -21,8 +21,10 @@ export type Informe = {
   id: number;
   tecnico_id: string;
   creado_en: string;
-  fecha_evaluacion: string;
-  tipo_evaluacion: string;
+  fecha_evaluacion: string | null;
+  tipo_evaluacion: string | null;
+  nombre_equipo: string | null;
+  descripcion: string | null;
   cliente: string;
   ubicacion: string | null;
   marca: string | null;
@@ -44,7 +46,7 @@ export type Informe = {
   estado_correas: string | null;
   estado_bateria: string | null;
   prueba_con_carga: boolean | null;
-  estado_general: string;
+  estado_general: string | null;
   observaciones: string | null;
   recomendaciones: string | null;
   fotos: string[];
@@ -55,7 +57,9 @@ export const ESTADOS_GENERALES = ["Operativo", "Operativo con observaciones", "F
 export const TIPOS_EVALUACION = ["Preventiva", "Correctiva", "Inspección", "Puesta en marcha"];
 export const CONDICIONES = ["Bueno", "Regular", "Malo", "N/A"];
 
-export function colorEstado(estado: string) {
+export const esVideo = (ruta: string) => /\.(mp4|mov|webm|m4v|3gp|avi|mkv)$/i.test(ruta);
+
+export function colorEstado(estado: string | null) {
   if (estado === "Operativo") return "bg-emerald-100 text-emerald-800";
   if (estado === "Fuera de servicio") return "bg-red-100 text-red-800";
   return "bg-amber-100 text-amber-800";

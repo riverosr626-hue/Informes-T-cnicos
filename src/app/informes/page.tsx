@@ -16,14 +16,14 @@ export default async function ListaInformes({
 
   let consulta = supabase
     .from("informes")
-    .select("id, creado_en, fecha_evaluacion, tipo_evaluacion, cliente, ubicacion, marca, modelo, estado_general, tecnico_id, perfiles(nombre, correo)")
+    .select("id, creado_en, fecha_evaluacion, tipo_evaluacion, cliente, ubicacion, nombre_equipo, numero_serie, marca, modelo, estado_general, tecnico_id, perfiles(nombre, correo)")
     .order("creado_en", { ascending: false })
     .limit(200);
 
   if (esAdmin && tecnico) consulta = consulta.eq("tecnico_id", tecnico);
   const busqueda = (q ?? "").replace(/[,()%*]/g, " ").trim();
   if (busqueda)
-    consulta = consulta.or(`cliente.ilike.%${busqueda}%,ubicacion.ilike.%${busqueda}%,numero_serie.ilike.%${busqueda}%`);
+    consulta = consulta.or(`cliente.ilike.%${busqueda}%,ubicacion.ilike.%${busqueda}%,numero_serie.ilike.%${busqueda}%,nombre_equipo.ilike.%${busqueda}%`);
 
   const { data: informes, error } = await consulta.returns<Informe[]>();
 
@@ -59,7 +59,7 @@ export default async function ListaInformes({
         </div>
 
         <form className="mb-4 flex flex-wrap gap-2">
-          <input name="q" defaultValue={q} placeholder="Buscar cliente, ubicación o N° de serie" className="campo max-w-xs" />
+          <input name="q" defaultValue={q} placeholder="Buscar cliente, ubicación, equipo o N° de serie" className="campo max-w-xs" />
           {esAdmin && (
             <select name="tecnico" defaultValue={tecnico ?? ""} className="campo max-w-xs">
               <option value="">Todos los técnicos</option>
@@ -100,17 +100,24 @@ export default async function ListaInformes({
                     <td className="px-4 py-2.5 font-mono">
                       <Link href={`/informes/${i.id}`} className="text-marca-700 underline">#{i.id}</Link>
                     </td>
-                    <td className="px-4 py-2.5 whitespace-nowrap">{i.fecha_evaluacion}</td>
+                    <td className="px-4 py-2.5 whitespace-nowrap">{i.fecha_evaluacion ?? "—"}</td>
                     <td className="px-4 py-2.5">
                       <div className="font-medium">{i.cliente}</div>
                       <div className="text-xs text-gray-500">{i.ubicacion}</div>
                     </td>
-                    <td className="px-4 py-2.5">{[i.marca, i.modelo].filter(Boolean).join(" ") || "—"}</td>
+                    <td className="px-4 py-2.5">
+                      <div>{i.nombre_equipo || [i.marca, i.modelo].filter(Boolean).join(" ") || "—"}</div>
+                      {i.numero_serie && <div className="text-xs text-gray-500">N° {i.numero_serie}</div>}
+                    </td>
                     {esAdmin && <td className="px-4 py-2.5">{i.perfiles?.nombre ?? "—"}</td>}
                     <td className="px-4 py-2.5">
-                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colorEstado(i.estado_general)}`}>
-                        {i.estado_general}
-                      </span>
+                      {i.estado_general ? (
+                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${colorEstado(i.estado_general)}`}>
+                          {i.estado_general}
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
                     </td>
                     <td className="px-4 py-2.5 whitespace-nowrap text-xs text-gray-500">{formatoFecha(i.creado_en)}</td>
                   </tr>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { esAdmin, NOMBRE_ROL, type Perfil } from "@/lib/tipos";
 import MenuUsuario from "./MenuUsuario";
+import Asistente from "./Asistente";
 
 export default async function Encabezado({ perfil }: { perfil: Perfil | null }) {
   // Aviso para administradores: técnicos que pidieron recuperar su contraseña
@@ -73,6 +74,8 @@ export default async function Encabezado({ perfil }: { perfil: Perfil | null }) 
           </div>
         </div>
       )}
+
+      {perfil && <Asistente usuarioId={perfil.id} nombre={perfil.nombre} rol={perfil.rol} />}
     </>
   );
 }

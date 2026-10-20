@@ -1,99 +1,108 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { CONDICIONES, ESTADOS_GENERALES, TIPOS_EVALUACION } from "@/lib/tipos";
+import AsistenteRedaccion from "./AsistenteRedaccion";
 
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
+function Campo({ label, children, ayuda }: { label: string; children: React.ReactNode; ayuda?: string }) {
   return (
     <div>
       <label className="etiqueta">{label}</label>
       {children}
+      {ayuda && <p className="mt-1 text-xs text-gray-500">{ayuda}</p>}
     </div>
   );
 }
 
-function Seccion({ titulo, children }: { titulo: string; children: React.ReactNode }) {
-  return (
-    <section className="tarjeta">
-      <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-800">{titulo}</h2>
-      {children}
-    </section>
-  );
-}
-
-const MEDICIONES: [string, string][] = [
-  ["voltaje_l1", "Voltaje L1 (V)"],
-  ["voltaje_l2", "Voltaje L2 (V)"],
-  ["voltaje_l3", "Voltaje L3 (V)"],
-  ["frecuencia_hz", "Frecuencia (Hz)"],
-  ["presion_aceite_psi", "Presión aceite (psi)"],
-  ["temperatura_c", "Temperatura (°C)"],
-  ["voltaje_bateria", "Voltaje batería (V)"],
-];
-
-const INSPECCION: [string, string][] = [
-  ["nivel_aceite", "Nivel de aceite"],
-  ["nivel_refrigerante", "Nivel de refrigerante"],
-  ["nivel_combustible", "Nivel de combustible"],
-  ["estado_filtros", "Filtros"],
-  ["estado_correas", "Correas"],
-  ["estado_bateria", "Batería"],
-];
-
-const NUMERICOS = ["potencia_kva", "horometro", ...MEDICIONES.map(([k]) => k)];
+// Límite por archivo del plan gratuito de Supabase
+const MAX_MB = 50;
 
 export default function FormularioInforme({ usuarioId }: { usuarioId: string }) {
   const router = useRouter();
   const supabase = createClient();
-  const [fotos, setFotos] = useState<File[]>([]);
-  const [enviando, setEnviando] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [archivos, setArchivos] = useState<File[]>([]);
+  const [enviando, setEnviando] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hoy = new Date().toLocaleDateString("en-CA", { timeZone: "America/Santiago" });
+  const [valores, setValores] = useState<Record<string, string>>({});
+
+  // Lee el formulario para que el asistente revise los datos en vivo
+  function leerFormulario() {
+    if (!formRef.current) return;
+    const v: Record<string, string> = {};
+    new FormData(formRef.current).forEach((valor, clave) => {
+      if (clave !== "archivos" && typeof valor === "string") v[clave] = valor;
+    });
+    setValores(v);
+  }
+
+  function cambiarDescripcion(texto: string, modo: "agregar" | "reemplazar") {
+    const area = formRef.current?.elements.namedItem("descripcion") as HTMLTextAreaElement | null;
+    if (!area) return;
+    const actual = area.value.trim();
+    area.value = modo === "reemplazar" || !actual ? texto : `${actual}\n${texto}`;
+    area.focus();
+    leerFormulario();
+  }
+
+  function elegirArchivos(lista: FileList | null) {
+    const nuevos = Array.from(lista ?? []);
+    const grandes = nuevos.filter((f) => f.size > MAX_MB * 1024 * 1024);
+    setError(grandes.length ? `Estos archivos pesan más de ${MAX_MB} MB y no se pueden subir: ${grandes.map((f) => f.name).join(", ")}` : null);
+    setArchivos(nuevos.filter((f) => f.size <= MAX_MB * 1024 * 1024));
+  }
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    setEnviando(true);
     setError(null);
 
     const fd = new FormData(e.currentTarget);
-    const datos: Record<string, unknown> = {};
-    fd.forEach((valor, clave) => {
-      if (clave === "fotos") return;
-      const v = String(valor).trim();
-      if (v === "") return;
-      datos[clave] = NUMERICOS.includes(clave) ? Number(v.replace(",", ".")) : v;
-    });
-    const carga = fd.get("prueba_con_carga");
-    datos.prueba_con_carga = carga === "si" ? true : carga === "no" ? false : null;
+    const texto = (k: string) => {
+      const v = String(fd.get(k) ?? "").trim();
+      return v === "" ? null : v;
+    };
+    const horas = texto("horometro");
+    const horometro = horas === null ? null : Number(horas.replace(",", "."));
+    if (horometro !== null && !Number.isFinite(horometro)) {
+      setError("El horómetro debe ser un número (ej. 1250 o 1250,5).");
+      return;
+    }
 
-    // 1) Subir fotos a la carpeta del técnico
+    // 1) Subir fotos y videos a la carpeta del técnico
     const rutas: string[] = [];
-    for (const foto of fotos) {
-      const ext = foto.name.split(".").pop()?.toLowerCase() || "jpg";
+    for (const [n, archivo] of archivos.entries()) {
+      setEnviando(`Subiendo archivo ${n + 1} de ${archivos.length}…`);
+      const ext = archivo.name.split(".").pop()?.toLowerCase() || (archivo.type.startsWith("video/") ? "mp4" : "jpg");
       const ruta = `${usuarioId}/${crypto.randomUUID()}.${ext}`;
-      const { error: errFoto } = await supabase.storage.from("fotos").upload(ruta, foto, {
-        contentType: foto.type,
-      });
-      if (errFoto) {
-        setError(`No se pudo subir la foto "${foto.name}": ${errFoto.message}`);
-        setEnviando(false);
+      const { error: errArchivo } = await supabase.storage.from("fotos").upload(ruta, archivo, { contentType: archivo.type });
+      if (errArchivo) {
+        setError(`No se pudo subir "${archivo.name}": ${errArchivo.message}`);
+        setEnviando(null);
         return;
       }
       rutas.push(ruta);
     }
 
     // 2) Guardar el informe (tecnico_id lo pone la base de datos = usuario conectado)
+    setEnviando("Guardando informe…");
     const { data, error: errInforme } = await supabase
       .from("informes")
-      .insert({ ...datos, fotos: rutas })
+      .insert({
+        cliente: texto("cliente"),
+        ubicacion: texto("ubicacion"),
+        nombre_equipo: texto("nombre_equipo"),
+        numero_serie: texto("numero_serie"),
+        horometro,
+        descripcion: texto("descripcion"),
+        fotos: rutas,
+      })
       .select("id")
       .single();
 
     if (errInforme) {
       setError(`No se pudo guardar el informe: ${errInforme.message}`);
-      setEnviando(false);
+      setEnviando(null);
       return;
     }
 
@@ -101,103 +110,74 @@ export default function FormularioInforme({ usuarioId }: { usuarioId: string }) 
     router.refresh();
   }
 
+  const fotos = archivos.filter((f) => !f.type.startsWith("video/")).length;
+  const videos = archivos.length - fotos;
+
   return (
-    <form onSubmit={enviar} className="space-y-4">
-      <Seccion titulo="Datos generales">
+    <form id="formulario-informe" ref={formRef} onSubmit={enviar} onInput={leerFormulario} onChange={leerFormulario} className="space-y-4">
+      <section className="tarjeta">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-800">Cliente</h2>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Campo label="Fecha de evaluación *">
-            <input type="date" name="fecha_evaluacion" defaultValue={hoy} required className="campo" />
-          </Campo>
-          <Campo label="Tipo de evaluación *">
-            <select name="tipo_evaluacion" required className="campo" defaultValue="Preventiva">
-              {TIPOS_EVALUACION.map((t) => <option key={t}>{t}</option>)}
-            </select>
-          </Campo>
-          <Campo label="Cliente *">
+          <Campo label="Nombre del cliente *">
             <input name="cliente" required className="campo" />
           </Campo>
-          <Campo label="Ubicación / Faena">
-            <input name="ubicacion" className="campo" />
+          <Campo label="Ubicación del cliente">
+            <input name="ubicacion" className="campo" placeholder="Dirección, faena o sucursal" />
           </Campo>
         </div>
-      </Seccion>
+      </section>
 
-      <Seccion titulo="Datos del generador">
+      <section className="tarjeta">
+        <h2 className="mb-4 text-sm font-bold uppercase tracking-wide text-gray-800">Equipo</h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          <Campo label="Marca"><input name="marca" className="campo" /></Campo>
-          <Campo label="Modelo"><input name="modelo" className="campo" /></Campo>
-          <Campo label="N° de serie"><input name="numero_serie" className="campo" /></Campo>
-          <Campo label="Potencia (kVA)"><input name="potencia_kva" inputMode="decimal" className="campo" /></Campo>
-          <Campo label="Horómetro (h)"><input name="horometro" inputMode="decimal" className="campo" /></Campo>
+          <Campo label="Nombre del equipo">
+            <input name="nombre_equipo" className="campo" placeholder="Ej. Generador Cummins 150 kVA" />
+          </Campo>
+          <Campo label="N° de serie del equipo">
+            <input name="numero_serie" className="campo" />
+          </Campo>
+          <Campo label="Horómetro del equipo (h)">
+            <input name="horometro" inputMode="decimal" className="campo" />
+          </Campo>
         </div>
-      </Seccion>
+      </section>
 
-      <Seccion titulo="Mediciones">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {MEDICIONES.map(([k, l]) => (
-            <Campo key={k} label={l}><input name={k} inputMode="decimal" className="campo" /></Campo>
-          ))}
-        </div>
-      </Seccion>
+      <AsistenteRedaccion valores={valores} onDescripcion={cambiarDescripcion} />
 
-      <Seccion titulo="Inspección">
-        <div className="grid gap-4 sm:grid-cols-3">
-          {INSPECCION.map(([k, l]) => (
-            <Campo key={k} label={l}>
-              <select name={k} className="campo" defaultValue="">
-                <option value="">—</option>
-                {CONDICIONES.map((c) => <option key={c}>{c}</option>)}
-              </select>
-            </Campo>
-          ))}
-          <Campo label="Prueba con carga">
-            <select name="prueba_con_carga" className="campo" defaultValue="">
-              <option value="">No aplica</option>
-              <option value="si">Sí, aprobada</option>
-              <option value="no">Sí, no aprobada</option>
-            </select>
-          </Campo>
-        </div>
-      </Seccion>
-
-      <Seccion titulo="Conclusión">
-        <div className="space-y-4">
-          <Campo label="Estado general del equipo *">
-            <div className="flex flex-wrap gap-2">
-              {ESTADOS_GENERALES.map((e, idx) => (
-                <label key={e} className="flex cursor-pointer items-center gap-2 rounded-md border border-gray-300 px-3 py-2 text-sm has-[:checked]:border-marca-500 has-[:checked]:bg-marca-50">
-                  <input type="radio" name="estado_general" value={e} required defaultChecked={idx === 0} />
-                  {e}
-                </label>
-              ))}
-            </div>
-          </Campo>
-          <Campo label="Observaciones">
-            <textarea name="observaciones" rows={4} className="campo" />
-          </Campo>
-          <Campo label="Recomendaciones">
-            <textarea name="recomendaciones" rows={3} className="campo" />
-          </Campo>
-          <Campo label="Fotos">
-            <input
-              type="file"
-              name="fotos"
-              accept="image/*"
-              multiple
-              onChange={(e) => setFotos(Array.from(e.target.files ?? []))}
-              className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-2 file:text-white"
-            />
-            {fotos.length > 0 && <p className="mt-1 text-xs text-gray-500">{fotos.length} foto(s) seleccionada(s)</p>}
-          </Campo>
-        </div>
-      </Seccion>
+      <section className="tarjeta space-y-4">
+        <Campo label="Descripción">
+          <textarea
+            name="descripcion"
+            rows={8}
+            className="campo"
+            placeholder="Qué se encontró, qué trabajos se hicieron y qué se recomienda."
+          />
+        </Campo>
+        <Campo label="Fotos o videos" ayuda={`Puedes elegir varias fotos y videos (máximo ${MAX_MB} MB por archivo).`}>
+          <input
+            type="file"
+            name="archivos"
+            accept="image/*,video/*"
+            multiple
+            onChange={(e) => elegirArchivos(e.target.files)}
+            className="block w-full text-sm file:mr-3 file:rounded-md file:border-0 file:bg-gray-900 file:px-3 file:py-2 file:text-white"
+          />
+          {archivos.length > 0 && (
+            <p className="mt-1 text-xs text-gray-500">
+              {fotos > 0 && `${fotos} foto${fotos === 1 ? "" : "s"}`}
+              {fotos > 0 && videos > 0 && " y "}
+              {videos > 0 && `${videos} video${videos === 1 ? "" : "s"}`} seleccionado{archivos.length === 1 ? "" : "s"}
+            </p>
+          )}
+        </Campo>
+      </section>
 
       {error && <p className="rounded bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       <div className="flex justify-end gap-2">
         <button type="button" onClick={() => router.back()} className="boton-sec">Cancelar</button>
-        <button className="boton" disabled={enviando}>
-          {enviando ? "Enviando…" : "Enviar informe"}
+        <button className="boton" disabled={enviando !== null}>
+          {enviando ?? "Enviar informe"}
         </button>
       </div>
     </form>
